@@ -1,0 +1,163 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sutariya Jewelry Barcode Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    h1 { color: #e2c477; text-align: center; }
+    button {
+      width: 100%;
+      padding: 15px;
+      margin: 10px 0;
+      border: 0;
+      border-radius: 8px;
+      background: #d4af55;
+      color: #111;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    input {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    #reader { margin-top: 16px; }
+    #message { margin-top: 16px; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <h1>SUTARIYA JEWELS</h1>
+  <p>Scan a barcode to open its inventory record.</p>
+
+  <button id="startButton" onclick="startScanner()">
+    OPEN CAMERA SCANNER
+  </button>
+
+  <button onclick="stopScanner()">STOP CAMERA</button>
+
+  <div id="reader"></div>
+
+  <p>Or enter the barcode manually:</p>
+  <input id="barcode" placeholder="Example: SB001">
+  <button onclick="openInventory()">FIND JEWELRY</button>
+
+  <div id="message"></div>
+
+  <script>
+    const INVENTORY_URL =
+      'https://script.google.com/macros/s/AKfycbyYadSNBBDtPtXyckO8sk1Zfi9wtj3ck-_RNs0wd3T2Oia6By77bkrKL2FP9AfF4awi/exec';
+
+    let scanner = null;
+    let starting = false;
+    let openingRecord = false;
+
+    function openInventory(value) {
+      const barcode = (
+        value || document.getElementById('barcode').value
+      ).trim();
+
+      if (!barcode) {
+        document.getElementById('message').textContent =
+          'Please scan or enter a barcode.';
+        return;
+      }
+
+      if (!INVENTORY_URL.startsWith('https://') ||
+          !INVENTORY_URL.endsWith('/exec')) {
+        document.getElementById('message').textContent =
+          'Please configure your deployed Apps Script /exec URL.';
+        return;
+      }
+
+      window.location.href =
+        INVENTORY_URL + '?barcode=' + encodeURIComponent(barcode);
+    }
+
+    async function startScanner() {
+      if (starting || scanner) return;
+
+      if (!window.isSecureContext || !navigator.mediaDevices ||
+          !navigator.mediaDevices.getUserMedia) {
+        document.getElementById('message').textContent =
+          'Camera access requires a secure HTTPS page and a supported browser.';
+        return;
+      }
+
+      if (typeof Html5Qrcode === 'undefined') {
+        document.getElementById('message').textContent =
+          'Scanner library did not load. Check your internet connection.';
+        return;
+      }
+
+      starting = true;
+      document.getElementById('message').textContent =
+        'Starting camera...';
+
+      try {
+        scanner = new Html5Qrcode('reader');
+
+        await scanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 150 } },
+          async function(decodedText) {
+            if (openingRecord) return;
+            openingRecord = true;
+            document.getElementById('message').textContent =
+              'Barcode found. Opening inventory...';
+
+            try {
+              await stopScanner();
+            } finally {
+              openInventory(decodedText);
+            }
+          },
+          function() {}
+        );
+
+        document.getElementById('message').textContent =
+          'Camera active. Point it at the barcode.';
+      } catch (error) {
+        if (scanner) {
+          try { await scanner.clear(); } catch (ignored) {}
+          scanner = null;
+        }
+
+        document.getElementById('message').textContent =
+          'Camera error: ' + (error.message || error) +
+          '. Check browser and device camera permissions.';
+      } finally {
+        starting = false;
+      }
+    }
+
+    async function stopScanner() {
+      if (!scanner) return;
+
+      const current = scanner;
+      scanner = null;
+
+      try {
+        await current.stop();
+      } catch (ignored) {}
+
+      try {
+        await current.clear();
+      } catch (ignored) {}
+    }
+  </script>
+</body>
+</html>

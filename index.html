@@ -1,0 +1,213 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Sutariya Jewels QR Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    main {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #e2c477;
+    }
+
+    p {
+      text-align: center;
+      color: #ccc;
+    }
+
+    #reader {
+      width: 100%;
+      margin-top: 20px;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    button, input {
+      width: 100%;
+      padding: 14px;
+      margin-top: 12px;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      border: none;
+      background: #d4af55;
+      color: #111;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    input {
+      background: #222;
+      color: white;
+      border: 1px solid #555;
+    }
+
+    #message {
+      margin-top: 16px;
+      text-align: center;
+      overflow-wrap: anywhere;
+    }
+
+    .note {
+      font-size: 13px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>SUTARIYA JEWELS</h1>
+    <p>Scan a jewelry QR code to view its inventory record.</p>
+
+    <div id="reader"></div>
+
+    <button id="startButton" onclick="startScanner()">
+      START QR SCANNER
+    </button>
+
+    <div id="message">Ready to scan.</div>
+
+    <input id="manualId" placeholder="Or enter item ID, e.g. SB001">
+    <button onclick="openItem()">OPEN ITEM</button>
+
+    <p class="note">
+      Each QR code should contain the item's unique ID, such as SB001.
+      Camera permission is required for scanning.
+    </p>
+  </main>
+
+  <script>
+    // IMPORTANT: Replace this with your current Apps Script
+    // deployed Web app URL ending in /exec.
+    const APPS_SCRIPT_URL =
+      'https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec';
+
+    let scanner = null;
+    let scanning = false;
+    let processing = false;
+
+    function validateAppUrl() {
+      if (
+        APPS_SCRIPT_URL.includes('PASTE_YOUR_') ||
+        !APPS_SCRIPT_URL.startsWith('https://script.google.com/')
+      ) {
+        document.getElementById('message').textContent =
+          'Please add your deployed Apps Script /exec URL in index.html.';
+        return false;
+      }
+
+      return true;
+    }
+
+    function openItem(id) {
+      const itemId = String(
+        id || document.getElementById('manualId').value
+      ).trim();
+
+      if (!itemId) {
+        document.getElementById('message').textContent =
+          'Enter an item ID first.';
+        return;
+      }
+
+      if (!validateAppUrl()) return;
+
+      const target = new URL(APPS_SCRIPT_URL);
+      target.searchParams.set('barcode', itemId);
+
+      window.location.href = target.toString();
+    }
+
+    async function startScanner() {
+      if (scanning) return;
+
+      if (typeof Html5Qrcode === 'undefined') {
+        document.getElementById('message').textContent =
+          'Scanner library failed to load. Check your internet connection.';
+        return;
+      }
+
+      try {
+        document.getElementById('message').textContent =
+          'Requesting camera access...';
+
+        scanner = new Html5Qrcode('reader', {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE
+          ],
+          verbose: false
+        });
+
+        await scanner.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: function(viewWidth, viewHeight) {
+              const size = Math.floor(
+                Math.min(viewWidth, viewHeight, 280)
+              );
+
+              return { width: size, height: size };
+            },
+            aspectRatio: 1
+          },
+          async function(decodedText) {
+            if (processing) return;
+
+            processing = true;
+            document.getElementById('message').textContent =
+              'QR detected. Opening jewelry record...';
+
+            try {
+              await scanner.stop();
+            } catch (e) {
+              // Continue to the item lookup.
+            }
+
+            scanning = false;
+            openItem(decodedText);
+          },
+          function() {
+            // Ignore individual frames without a QR code.
+          }
+        );
+
+        scanning = true;
+        document.getElementById('message').textContent =
+          'Camera active. Point it at a jewelry QR code.';
+
+      } catch (error) {
+        scanning = false;
+        document.getElementById('message').textContent =
+          'Camera error: ' + (error.message || String(error)) +
+          '. Allow camera access and reload the page.';
+      }
+    }
+  </script>
+</body>
+</html>

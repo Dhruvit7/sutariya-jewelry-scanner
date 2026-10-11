@@ -61,6 +61,7 @@ async function startCamera(){
     show("Camera running. Point it at a code.");
     scanLoop();
   }catch(e){
+    stopCamera();
     show("Camera error: "+e.message+". Check permission and use HTTPS.");
   }
 }
@@ -97,39 +98,60 @@ function lookup(raw){
   if(!code){show("Enter a SKU or barcode.");return;}
 
   show("Searching…");
-  const callback="lookupCallback_"+Date.now();
+  const callback="lookupCallback_"+Date.now()+"_"+Math.floor(Math.random()*10000);
   const script=document.createElement("script");
+  const timeout=setTimeout(()=>{
+    delete window[callback];
+    script.remove();
+    show("Request timed out. Check your Apps Script deployment and API response.");
+  },15000);
 
   window[callback]=data=>{
+    clearTimeout(timeout);
     delete window[callback];
     script.remove();
 
-    if(!data || !data.success){
-      show(data && data.error ? data.error : "No matching item found.");
+    if(!data){
+      show("The server returned an empty response.");
       return;
     }
 
-    let text="TYPE: "+(data.type||"item").toUpperCase()+"\n\nITEM\n"+pretty(data.item);
-    if(data.diamonds && data.diamonds.length){
-      text+="\n\nLINKED DIAMONDS ("+data.diamonds.length+")";
-      data.diamonds.forEach((d,i)=>text+="\n\nDiamond "+(i+1)+"\n"+pretty(d));
+    // Accept either {success,item} or {found,...} response formats.
+    const found = data.success === true || data.found === true;
+    if(!found){
+      show(data.error || data.message || "No matching item found.");
+      return;
     }
-    if(data.jewelry) text+="\n\nRELATED JEWELRY\n"+pretty(data.jewelry);
-    show(text);
+
+    const item = data.item || data;
+    let output = "ITEM\n" + pretty(item);
+
+    if(data.diamonds && data.diamonds.length){
+      output += "\n\nLINKED DIAMONDS ("+data.diamonds.length+")";
+      data.diamonds.forEach((d,i)=>output+="\n\nDiamond "+(i+1)+"\n"+pretty(d));
+    }
+
+    if(data.jewelry) output += "\n\nRELATED JEWELRY\n"+pretty(data.jewelry);
+
+    show(output);
+  };
+
+  script.onerror=()=>{
+    clearTimeout(timeout);
+    delete window[callback];
+    script.remove();
+    show("Lookup failed. Confirm that Apps Script is deployed as a web app and that the API URL is correct.");
   };
 
   script.src=API_URL+"?api=1&code="+encodeURIComponent(code)+"&callback="+encodeURIComponent(callback);
-  script.onerror=()=>{
-    delete window[callback];
-    show("Lookup failed. Check the Apps Script deployment URL and permissions.");
-  };
   document.body.appendChild(script);
 }
 
 function pretty(obj){
-  return Object.keys(obj||{})
-    .filter(k=>!k.startsWith("_"))
-    .map(k=>k+": "+(obj[k]==null?"":obj[k]))
+  if(typeof obj !== "object" || obj === null) return String(obj ?? "");
+  return Object.keys(obj)
+    .filter(k=>!k.startsWith("_") && k!=="found" && k!=="success" && k!=="diamonds")
+    .map(k=>k+": "+(obj[k]==null?"":typeof obj[k]==="object"?JSON.stringify(obj[k]):obj[k]))
     .join("\n");
 }
 </script>

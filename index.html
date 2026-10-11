@@ -1,219 +1,136 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sutariya Jewels Scanner</title>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<style>
-:root{--gold:#d6b15e;--bg:#0b0b0c;--panel:#171719;--line:#353538;--muted:#aaa}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:#f5f5f5;font:16px Arial,sans-serif}
-.wrap{max-width:780px;margin:auto;padding:22px}
-.brand{color:var(--gold);letter-spacing:2px;font-weight:bold;font-size:13px}
-h1{font-size:28px;margin:8px 0 4px}
-.muted{color:var(--muted);font-size:14px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin:18px 0}
-.row{display:flex;gap:8px;flex-wrap:wrap}
-input,button{border-radius:8px;border:1px solid var(--line);padding:12px;font-size:15px}
-input{background:#0e0e10;color:white;flex:1;min-width:180px}
-button{cursor:pointer;background:var(--gold);color:#16120a;font-weight:bold;border:0}
-.secondary{background:#29292c;color:white;border:1px solid var(--line)}
-#reader{width:100%;max-width:480px;margin:14px auto}
-.pill{display:inline-block;border:1px solid #45454a;border-radius:99px;padding:5px 9px;font-size:12px;color:var(--gold)}
-.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:16px}
-.field{padding:10px;border:1px solid var(--line);border-radius:8px;overflow-wrap:anywhere}
-.field small{display:block;color:var(--muted);margin-bottom:5px}
-.field b{font-size:14px}
-.linked{margin-top:12px;padding:12px;border-left:3px solid var(--gold);background:#202023}
-a{color:var(--gold)}
-.error{color:#ff9c9c}.ok{color:#9ce0ad}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sutariya Jewels Scanner</title>
+  <style>
+    body{margin:0;padding:20px;background:#101010;color:#f4f0e7;font:15px Arial}
+    h1{color:#d6b36a;font-size:24px}
+    .muted{color:#aaa}
+    .panel{max-width:650px;margin:auto}
+    video{width:100%;background:#000;border-radius:12px}
+    button,input{font:inherit;padding:12px;border-radius:7px;margin:5px 0}
+    button{background:#d6b36a;border:0;cursor:pointer}
+    input{width:100%;box-sizing:border-box;background:#222;color:white;border:1px solid #555}
+    #result{margin-top:16px;padding:15px;border:1px solid #444;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}
+  </style>
 </head>
 <body>
-<main class="wrap">
-  <div class="brand">SUTARIYA JEWELS &amp; DIAMOND INC.</div>
-  <h1>Inventory Scanner</h1>
-  <div class="muted">Scan a jewelry or diamond QR code, or enter its ID.</div>
-
-  <section class="panel">
-    <form id="searchForm" class="row">
-      <input id="itemCode" autocomplete="off" placeholder="e.g. SB001 or SJD-R01" required>
-      <button type="submit">Search</button>
-    </form>
-    <div class="row" style="margin-top:12px">
-      <button id="startBtn" type="button">Start camera</button>
-      <button id="stopBtn" type="button" class="secondary">Stop camera</button>
-      <a id="dashboardLink" href="#" style="align-self:center;margin-left:auto">Dashboard</a>
-    </div>
-    <div id="reader"></div>
-    <div id="status" class="muted" aria-live="polite">Ready.</div>
-  </section>
-
-  <section class="panel" id="result" hidden></section>
-</main>
+<div class="panel">
+  <h1>SUTARIYA JEWELS</h1>
+  <p class="muted">Inventory QR / barcode lookup</p>
+  <video id="video" playsinline muted></video>
+  <div>
+    <button onclick="startCamera()">Start camera</button>
+    <button onclick="stopCamera()">Stop camera</button>
+  </div>
+  <p class="muted">If camera scanning is unavailable, enter the SKU or barcode below.</p>
+  <input id="code" placeholder="SB001 or SJD-R01">
+  <button onclick="lookup(document.getElementById('code').value)">Find item</button>
+  <div id="result">Ready.</div>
+</div>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec";
-document.getElementById("dashboardLink").href = API_URL + "?admin=1";
 
-let qrScanner = null;
-let cameraRunning = false;
-let busy = false;
-let callbackNumber = 0;
-let lastCode = "";
-let lastAt = 0;
+let stream = null, detector = null, running = false;
+let lastCode = "", lastTime = 0;
 
-const $ = id => document.getElementById(id);
+const video = document.getElementById("video");
+const result = document.getElementById("result");
 
-$("searchForm").addEventListener("submit", function(e) {
-  e.preventDefault();
-  searchItem($("itemCode").value);
-});
-$("startBtn").addEventListener("click", startScanner);
-$("stopBtn").addEventListener("click", stopScanner);
+function show(text){ result.textContent = text; }
 
-function setStatus(message, cls) {
-  $("status").className = cls || "muted";
-  $("status").textContent = message;
-}
-
-async function startScanner() {
-  if (cameraRunning || busy) return;
-  try {
-    if (!qrScanner) qrScanner = new Html5Qrcode("reader");
-    setStatus("Requesting camera permission…");
-    await qrScanner.start(
-      {facingMode:"environment"},
-      {fps:10,qrbox:{width:230,height:230}},
-      onCodeDetected,
-      function(){}
-    );
-    cameraRunning = true;
-    setStatus("Camera is on. Point it at a QR code.","ok");
-  } catch (e) {
-    setStatus("Could not start camera. Allow camera permission and use HTTPS. " + (e.message || ""),"error");
+async function startCamera(){
+  try{
+    if(!("BarcodeDetector" in window)){
+      show("Camera barcode scanning is not supported by this browser. Enter the code manually.");
+      return;
+    }
+    detector = new BarcodeDetector({
+      formats:["qr_code","code_128","code_39","ean_13","ean_8","upc_a","upc_e"]
+    });
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:"environment"}},audio:false
+    });
+    video.srcObject = stream;
+    await video.play();
+    running = true;
+    show("Camera running. Point it at a code.");
+    scanLoop();
+  }catch(e){
+    show("Camera error: "+e.message+". Check permission and use HTTPS.");
   }
 }
 
-async function stopScanner() {
-  if (!qrScanner || !cameraRunning) return;
-  try { await qrScanner.stop(); } catch(e) {}
-  try { qrScanner.clear(); } catch(e) {}
-  cameraRunning = false;
-}
-
-async function onCodeDetected(raw) {
-  const code = String(raw || "").trim();
-  if (!code || busy) return;
-  const now = Date.now();
-  if (code === lastCode && now - lastAt < 2500) return;
-
-  lastCode = code;
-  lastAt = now;
-  busy = true;
-  $("itemCode").value = code;
-
-  try {
-    setStatus("QR detected. Stopping camera…");
-    await stopScanner();
-    await searchItem(code);
-  } finally {
-    busy = false;
-  }
-}
-
-function searchItem(raw) {
-  const code = String(raw || "").trim();
-  if (!code) {
-    setStatus("Enter or scan an ID.","error");
-    return Promise.resolve(null);
-  }
-
-  return new Promise(resolve => {
-    const cb = "sjdCallback" + (++callbackNumber) + "_" + Date.now();
-    const script = document.createElement("script");
-    let finished = false;
-
-    function finish(data) {
-      if (finished) return;
-      finished = true;
-      try { delete window[cb]; } catch(e) {}
-      script.remove();
-
-      if (data && data.found) {
-        renderItem(data);
-        setStatus("Item found.","ok");
-      } else {
-        renderNotFound(data && data.message || "No matching item found.","error");
+async function scanLoop(){
+  if(!running) return;
+  try{
+    if(video.readyState >= 2){
+      const codes = await detector.detect(video);
+      if(codes.length && codes[0].rawValue){
+        const code = codes[0].rawValue.trim(), now = Date.now();
+        if(code !== lastCode || now-lastTime > 2500){
+          lastCode=code; lastTime=now;
+          stopCamera();
+          document.getElementById("code").value=code;
+          lookup(code);
+          return;
+        }
       }
-      resolve(data);
+    }
+  }catch(e){}
+  if(running) requestAnimationFrame(scanLoop);
+}
+
+function stopCamera(){
+  running=false;
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  stream=null;
+  video.srcObject=null;
+}
+
+function lookup(raw){
+  const code=String(raw||"").trim();
+  if(!code){show("Enter a SKU or barcode.");return;}
+
+  show("Searching…");
+  const callback="lookupCallback_"+Date.now();
+  const script=document.createElement("script");
+
+  window[callback]=data=>{
+    delete window[callback];
+    script.remove();
+
+    if(!data || !data.success){
+      show(data && data.error ? data.error : "No matching item found.");
+      return;
     }
 
-    window[cb] = finish;
-    script.onerror = () => finish({
-      found:false,
-      message:"API request failed. Check the Apps Script deployment."
-    });
-    script.src = API_URL + "?api=1&code=" +
-      encodeURIComponent(code) + "&callback=" + cb;
-    document.body.appendChild(script);
-  });
-}
-
-function renderNotFound(message, cls) {
-  $("result").hidden = false;
-  $("result").innerHTML = "<h2>Lookup result</h2><p class=\"" +
-    (cls || "") + "\">" + esc(message) + "</p>";
-}
-
-function renderItem(data) {
-  const rec = data.record || {};
-  let html = '<div class="row"><span class="pill">' +
-    esc(data.recordType || "ITEM") + '</span><span class="pill">' +
-    esc(data.id || "") + '</span></div><h2>' +
-    esc(rec.Product || rec.Shape || rec["Stone ID"] || data.id || "Inventory item") +
-    '</h2><div class="muted">' + esc(data.sheetName || "") +
-    ' · row ' + esc(data.rowNumber || "") +
-    '</div><div class="fields">';
-
-  Object.keys(rec).forEach(k => {
-    if (rec[k] !== "" && rec[k] != null) {
-      html += '<div class="field"><small>' + esc(k) +
-        '</small><b>' + esc(rec[k]) + '</b></div>';
+    let text="TYPE: "+(data.type||"item").toUpperCase()+"\n\nITEM\n"+pretty(data.item);
+    if(data.diamonds && data.diamonds.length){
+      text+="\n\nLINKED DIAMONDS ("+data.diamonds.length+")";
+      data.diamonds.forEach((d,i)=>text+="\n\nDiamond "+(i+1)+"\n"+pretty(d));
     }
-  });
-  html += '</div>';
+    if(data.jewelry) text+="\n\nRELATED JEWELRY\n"+pretty(data.jewelry);
+    show(text);
+  };
 
-  const linked = data.linkedDiamonds || [];
-  if (linked.length) {
-    html += '<div class="linked"><b>Linked diamonds (' +
-      linked.length + ')</b>';
-    linked.forEach(d => {
-      const r = d.record || {};
-      html += '<div style="margin-top:8px">' + esc(d.id || "") +
-        ' — ' + esc(r.Shape || "Diamond") + ' ' +
-        esc(r["Target CT"] || "") + ' ct</div>';
-    });
-    html += '</div>';
-  }
-
-  if (data.linkedJewelry) {
-    html += '<div class="linked"><b>Assigned to jewelry</b><div>' +
-      esc(data.linkedJewelry.id || "") + '</div></div>';
-  } else if (data.linkedJewelryId) {
-    html += '<div class="linked">Jewelry ID: ' +
-      esc(data.linkedJewelryId) + '</div>';
-  }
-
-  $("result").hidden = false;
-  $("result").innerHTML = html;
+  script.src=API_URL+"?api=1&code="+encodeURIComponent(code)+"&callback="+encodeURIComponent(callback);
+  script.onerror=()=>{
+    delete window[callback];
+    show("Lookup failed. Check the Apps Script deployment URL and permissions.");
+  };
+  document.body.appendChild(script);
 }
 
-function esc(v) {
-  return String(v == null ? "" : v).replace(/[&<>"']/g, c => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-  }[c]));
+function pretty(obj){
+  return Object.keys(obj||{})
+    .filter(k=>!k.startsWith("_"))
+    .map(k=>k+": "+(obj[k]==null?"":obj[k]))
+    .join("\n");
 }
 </script>
 </body>

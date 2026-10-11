@@ -4,210 +4,249 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sutariya Jewelry & Diamond Scanner</title>
 
-  <title>Sutariya Jewels QR Scanner</title>
-
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      padding: 20px;
-      background: #111;
-      color: white;
+      padding: 18px;
+      background: #f5f5f5;
+      color: #222;
       font-family: Arial, sans-serif;
     }
 
-    main {
-      max-width: 520px;
-      margin: 0 auto;
+    main { max-width: 520px; margin: auto; }
+
+    header {
+      padding: 22px;
+      background: #151515;
+      color: #d9b56d;
+      border-radius: 12px;
+      margin-bottom: 18px;
     }
 
-    h1 {
-      text-align: center;
-      color: #e2c477;
-    }
+    h1 { font-size: 22px; margin: 0 0 6px; }
+    header p { color: white; margin: 0; }
 
-    p {
-      text-align: center;
-      color: #ccc;
-    }
-
-    #reader {
-      width: 100%;
-      margin-top: 20px;
-      overflow: hidden;
+    section {
+      background: white;
+      padding: 18px;
+      margin-bottom: 16px;
       border-radius: 12px;
     }
 
     button, input {
       width: 100%;
       padding: 14px;
-      margin-top: 12px;
       border-radius: 8px;
       font-size: 16px;
+      margin-top: 10px;
     }
 
     button {
+      background: #151515;
+      color: #d9b56d;
       border: none;
-      background: #d4af55;
-      color: #111;
       font-weight: bold;
       cursor: pointer;
     }
 
-    input {
-      background: #222;
-      color: white;
-      border: 1px solid #555;
+    button:disabled { opacity: .55; cursor: wait; }
+
+    input { border: 1px solid #ccc; }
+
+    #reader {
+      width: 100%;
+      margin: 14px auto;
     }
 
-    #message {
-      margin-top: 16px;
-      text-align: center;
+    #status {
+      font-size: 14px;
+      line-height: 1.5;
       overflow-wrap: anywhere;
     }
 
-    .note {
-      font-size: 13px;
-      line-height: 1.5;
-    }
+    .muted { color: #666; }
   </style>
 </head>
 
 <body>
-  <main>
-    <h1>SUTARIYA JEWELS</h1>
-    <p>Scan a jewelry QR code to view its inventory record.</p>
+<main>
+  <header>
+    <h1>SUTARIYA JEWELS & DIAMOND</h1>
+    <p>Jewelry and Diamond Inventory Scanner</p>
+  </header>
 
+  <section>
+    <strong>Scan a QR code</strong>
     <div id="reader"></div>
 
-    <button id="startButton" onclick="startScanner()">
-      START QR SCANNER
-    </button>
+    <button id="startButton" type="button">START CAMERA</button>
+    <button id="stopButton" type="button">STOP CAMERA</button>
 
-    <div id="message">Ready to scan.</div>
-
-    <input id="manualId" placeholder="Or enter item ID, e.g. SB001">
-    <button onclick="openItem()">OPEN ITEM</button>
-
-    <p class="note">
-      Each QR code should contain the item's unique ID, such as SB001.
-      Camera permission is required for scanning.
+    <p id="status" class="muted" role="status" aria-live="polite">
+      Tap START CAMERA and allow camera access.
     </p>
-  </main>
+  </section>
 
-  <script>
-    // IMPORTANT: Replace this with your current Apps Script
-    // deployed Web app URL ending in /exec.
-    const APPS_SCRIPT_URL =
-      'https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec';
+  <section>
+    <strong>Or enter an item ID manually</strong>
+    <input id="itemCode" type="text" placeholder="SB013 or SJD-R03"
+           autocomplete="off">
+    <button id="openButton" type="button">OPEN ITEM</button>
+  </section>
+</main>
 
-    let scanner = null;
-    let scanning = false;
-    let processing = false;
+<script>
+(() => {
+  "use strict";
 
-    function validateAppUrl() {
-      if (
-        APPS_SCRIPT_URL.includes('PASTE_YOUR_') ||
-        !APPS_SCRIPT_URL.startsWith('https://script.google.com/')
-      ) {
-        document.getElementById('message').textContent =
-          'Please add your deployed Apps Script /exec URL in index.html.';
-        return false;
-      }
+  // Keep the existing Apps Script web app URL.
+  const APP_URL =
+    "https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec";
 
-      return true;
+  const startButton = document.getElementById("startButton");
+  const stopButton = document.getElementById("stopButton");
+  const openButton = document.getElementById("openButton");
+  const itemCode = document.getElementById("itemCode");
+  const status = document.getElementById("status");
+
+  let scanner = null;
+  let running = false;
+  let processing = false;
+
+  function setStatus(message) {
+    status.textContent = message;
+  }
+
+  function openItem(value) {
+    const code = String(value || "").trim();
+
+    if (!code) {
+      setStatus("Enter or scan an item ID first.");
+      return;
     }
 
-    function openItem(id) {
-      const itemId = String(
-        id || document.getElementById('manualId').value
-      ).trim();
+    // The QR contains an ID only, e.g. SB013 or SJD-R03.
+    const destination = APP_URL + "?barcode=" + encodeURIComponent(code);
+    window.location.assign(destination);
+  }
 
-      if (!itemId) {
-        document.getElementById('message').textContent =
-          'Enter an item ID first.';
-        return;
-      }
+  async function stopCamera() {
+    if (!scanner || !running) return;
 
-      if (!validateAppUrl()) return;
-
-      const target = new URL(APPS_SCRIPT_URL);
-      target.searchParams.set('barcode', itemId);
-
-      window.location.href = target.toString();
+    try {
+      await scanner.stop();
+    } catch (error) {
+      console.warn("Camera stop:", error);
     }
 
-    async function startScanner() {
-      if (scanning) return;
+    running = false;
 
-      if (typeof Html5Qrcode === 'undefined') {
-        document.getElementById('message').textContent =
-          'Scanner library failed to load. Check your internet connection.';
-        return;
-      }
-
-      try {
-        document.getElementById('message').textContent =
-          'Requesting camera access...';
-
-        scanner = new Html5Qrcode('reader', {
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.QR_CODE
-          ],
-          verbose: false
-        });
-
-        await scanner.start(
-          { facingMode: 'environment' },
-          {
-            fps: 10,
-            qrbox: function(viewWidth, viewHeight) {
-              const size = Math.floor(
-                Math.min(viewWidth, viewHeight, 280)
-              );
-
-              return { width: size, height: size };
-            },
-            aspectRatio: 1
-          },
-          async function(decodedText) {
-            if (processing) return;
-
-            processing = true;
-            document.getElementById('message').textContent =
-              'QR detected. Opening jewelry record...';
-
-            try {
-              await scanner.stop();
-            } catch (e) {
-              // Continue to the item lookup.
-            }
-
-            scanning = false;
-            openItem(decodedText);
-          },
-          function() {
-            // Ignore individual frames without a QR code.
-          }
-        );
-
-        scanning = true;
-        document.getElementById('message').textContent =
-          'Camera active. Point it at a jewelry QR code.';
-
-      } catch (error) {
-        scanning = false;
-        document.getElementById('message').textContent =
-          'Camera error: ' + (error.message || String(error)) +
-          '. Allow camera access and reload the page.';
-      }
+    try {
+      scanner.clear();
+    } catch (error) {
+      console.warn("Scanner cleanup:", error);
     }
-  </script>
+  }
+
+  async function startCamera() {
+    if (running) {
+      setStatus("Camera is already running. Point it at a QR code.");
+      return;
+    }
+
+    if (!window.isSecureContext) {
+      setStatus("Camera requires a secure HTTPS page. Open your GitHub Pages HTTPS address.");
+      return;
+    }
+
+    if (!navigator.mediaDevices ||
+        typeof navigator.mediaDevices.getUserMedia !== "function") {
+      setStatus("Camera is unavailable in this browser or page context. Try the latest Chrome over HTTPS.");
+      return;
+    }
+
+    if (typeof window.Html5Qrcode === "undefined") {
+      setStatus("The QR scanner library did not load. Check your internet connection, reload the page, and try again.");
+      return;
+    }
+
+    startButton.disabled = true;
+    setStatus("Starting camera. Please allow camera access if prompted...");
+
+    try {
+      scanner = new Html5Qrcode("reader", {
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        verbose: false
+      });
+
+      await scanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 230, height: 230 },
+          aspectRatio: 1
+        },
+        async decodedText => {
+          if (processing) return;
+          processing = true;
+
+          const code = String(decodedText || "").trim();
+          itemCode.value = code;
+          setStatus("QR detected: " + code + ". Opening item...");
+
+          await stopCamera();
+          openItem(code);
+        },
+        () => {
+          // Normal scan-frame misses are expected; do not show an error.
+        }
+      );
+
+      running = true;
+      setStatus("Camera is running. Point it at a jewelry or diamond QR code.");
+    } catch (error) {
+      running = false;
+
+      const name = error && error.name ? error.name : "";
+      const message = error && error.message ? error.message : String(error);
+
+      if (name === "NotAllowedError" || /permission|denied/i.test(message)) {
+        setStatus("Camera permission denied. Allow camera access for this site in Chrome site settings, then reload.");
+      } else if (name === "NotFoundError" || /no camera|camera device/i.test(message)) {
+        setStatus("No usable camera was found on this device.");
+      } else if (name === "NotReadableError" || /in use|could not start video/i.test(message)) {
+        setStatus("Camera may be in use by another app. Close other camera apps and try again.");
+      } else {
+        setStatus("Could not start camera: " + message);
+      }
+
+      if (scanner) {
+        try { scanner.clear(); } catch (_) {}
+      }
+    } finally {
+      startButton.disabled = false;
+    }
+  }
+
+  startButton.addEventListener("click", startCamera);
+
+  stopButton.addEventListener("click", async () => {
+    await stopCamera();
+    setStatus("Camera stopped.");
+  });
+
+  openButton.addEventListener("click", () => openItem(itemCode.value));
+
+  itemCode.addEventListener("keydown", event => {
+    if (event.key === "Enter") openItem(itemCode.value);
+  });
+})();
+</script>
 </body>
 </html>

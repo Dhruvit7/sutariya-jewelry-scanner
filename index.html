@@ -1,1096 +1,220 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#111111">
-  <title>Sutariya Jewels | Inventory</title>
-
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
-  <style>
-    :root {
-      --gold: #c5a05a;
-      --gold-light: #e7cc91;
-      --ink: #141414;
-      --panel: #202020;
-      --panel-light: #292929;
-      --text: #f7f5f0;
-      --muted: #b8b5ad;
-      --line: #393939;
-      --success: #81d5a8;
-      --danger: #ff9b91;
-      --page: #101010;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      padding: 18px 14px 36px;
-      background: var(--page);
-      color: var(--text);
-      font-family: Arial, Helvetica, sans-serif;
-    }
-
-    button, input { font: inherit; }
-
-    button {
-      min-height: 47px;
-      padding: 12px 15px;
-      border: 0;
-      border-radius: 10px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: opacity .15s ease, background .15s ease;
-    }
-
-    button:disabled {
-      opacity: .48;
-      cursor: not-allowed;
-    }
-
-    button:focus-visible, input:focus-visible {
-      outline: 2px solid var(--gold-light);
-      outline-offset: 2px;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 680px;
-      margin: 0 auto;
-    }
-
-    header {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-      padding: 8px 2px 23px;
-    }
-
-    .brand-mark {
-      display: grid;
-      place-items: center;
-      flex: 0 0 48px;
-      width: 48px;
-      height: 48px;
-      border-radius: 13px;
-      background: var(--gold);
-      color: var(--ink);
-      font-size: 25px;
-      font-weight: 800;
-    }
-
-    header h1 {
-      margin: 0 0 5px;
-      color: var(--gold-light);
-      font-size: 20px;
-      letter-spacing: 1.1px;
-    }
-
-    header p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 11px;
-      letter-spacing: 1.2px;
-    }
-
-    .panel {
-      margin-bottom: 15px;
-      padding: 17px;
-      border: 1px solid var(--line);
-      border-radius: 15px;
-      background: var(--panel);
-    }
-
-    .section-heading {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      margin: 0 0 15px;
-      font-size: 16px;
-    }
-
-    .section-icon {
-      color: var(--gold-light);
-      font-size: 19px;
-    }
-
-    .subtext {
-      margin: -6px 0 13px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    #reader {
-      width: 100%;
-      min-height: 70px;
-      overflow: hidden;
-      border: 1px solid #414141;
-      border-radius: 12px;
-      background: #090909;
-    }
-
-    #reader video {
-      width: 100% !important;
-      max-height: 390px;
-      object-fit: cover;
-      border-radius: 10px;
-    }
-
-    #reader img { max-width: 100%; }
-
-    #reader__dashboard,
-    #reader__status_span {
-      color: var(--text) !important;
-    }
-
-    #reader button {
-      min-height: 38px;
-      margin: 4px;
-      color: var(--ink);
-      background: var(--gold-light);
-    }
-
-    #reader select {
-      max-width: 100%;
-      padding: 8px;
-      border-radius: 7px;
-    }
-
-    .button-row, .search-row {
-      display: flex;
-      gap: 9px;
-      margin-top: 12px;
-    }
-
-    .button-row button { flex: 1; }
-
-    .primary {
-      color: #151515;
-      background: var(--gold);
-    }
-
-    .primary:hover:not(:disabled) {
-      background: var(--gold-light);
-    }
-
-    .secondary {
-      color: var(--text);
-      background: #393939;
-    }
-
-    .search-row input { flex: 1; }
-
-    input {
-      width: 100%;
-      min-width: 0;
-      padding: 14px 12px;
-      border: 1px solid #4a4a4a;
-      border-radius: 10px;
-      background: #111;
-      color: var(--text);
-      font-size: 16px;
-      text-transform: uppercase;
-    }
-
-    input::placeholder { color: #88857e; }
-
-    .gold-button {
-      min-width: 95px;
-      color: #151515;
-      background: var(--gold);
-    }
-
-    #cameraStatus, #apiStatus {
-      margin: 12px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
-      overflow-wrap: anywhere;
-    }
-
-    .success { color: var(--success) !important; }
-    .error { color: var(--danger) !important; }
-
-    .tip {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      margin-top: 12px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    .tip-symbol { color: var(--gold-light); }
-
-    .empty {
-      padding: 15px 4px;
-      color: var(--muted);
-      text-align: center;
-      font-size: 14px;
-      line-height: 1.6;
-      overflow-wrap: anywhere;
-    }
-
-    .item-id {
-      margin-top: 5px;
-      color: var(--gold-light);
-      font-size: 27px;
-      font-weight: 800;
-      overflow-wrap: anywhere;
-    }
-
-    .type-badge {
-      display: inline-block;
-      margin: 9px 0 13px;
-      padding: 6px 10px;
-      border: 1px solid #5b4a2d;
-      border-radius: 20px;
-      background: #302719;
-      color: var(--gold-light);
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: .7px;
-    }
-
-    .detail-row {
-      display: grid;
-      grid-template-columns: minmax(105px, 38%) minmax(0, 1fr);
-      gap: 12px;
-      padding: 11px 0;
-      border-bottom: 1px solid var(--line);
-      overflow-wrap: anywhere;
-    }
-
-    .detail-row:last-child { border-bottom: 0; }
-
-    .detail-label {
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    .detail-value {
-      color: var(--text);
-      font-size: 14px;
-      font-weight: 600;
-      line-height: 1.5;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
-
-    .linked-section {
-      margin-top: 20px;
-      padding-top: 16px;
-      border-top: 1px solid #51432d;
-    }
-
-    .linked-heading {
-      margin: 0 0 10px;
-      color: var(--gold-light);
-      font-size: 15px;
-    }
-
-    .linked-card {
-      margin-top: 9px;
-      padding: 13px;
-      border: 1px solid #414141;
-      border-radius: 11px;
-      background: var(--panel-light);
-      overflow-wrap: anywhere;
-    }
-
-    .linked-card-title {
-      margin: 0 0 8px;
-      color: var(--gold-light);
-      font-size: 14px;
-      font-weight: 700;
-    }
-
-    .linked-line {
-      margin-top: 6px;
-      color: #dedbd4;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .relation-note {
-      margin-top: 11px;
-      padding: 11px;
-      border-left: 3px solid var(--gold);
-      border-radius: 4px;
-      background: #29251d;
-      color: #eee0c3;
-      font-size: 13px;
-      line-height: 1.6;
-      overflow-wrap: anywhere;
-    }
-
-    .item-photo {
-      display: block;
-      max-width: 100%;
-      max-height: 280px;
-      object-fit: contain;
-      margin: 14px auto 0;
-      border-radius: 8px;
-    }
-
-    .external-photo-link {
-      display: inline-block;
-      margin-top: 12px;
-      color: var(--gold-light);
-      font-size: 13px;
-      overflow-wrap: anywhere;
-    }
-
-    .footer {
-      padding: 5px 0 0;
-      color: #79766f;
-      text-align: center;
-      font-size: 11px;
-      letter-spacing: .6px;
-    }
-
-    @media (max-width: 420px) {
-      body { padding: 12px 10px 26px; }
-      .panel { padding: 13px; }
-      header h1 { font-size: 17px; }
-      header p { font-size: 10px; }
-      .brand-mark { flex-basis: 43px; width: 43px; height: 43px; }
-      .gold-button { min-width: 78px; padding: 10px; }
-      .detail-row { grid-template-columns: 1fr; gap: 3px; }
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sutariya Jewels Scanner</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root{--gold:#d6b15e;--bg:#0b0b0c;--panel:#171719;--line:#353538;--muted:#aaa}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#f5f5f5;font:16px Arial,sans-serif}
+.wrap{max-width:780px;margin:auto;padding:22px}
+.brand{color:var(--gold);letter-spacing:2px;font-weight:bold;font-size:13px}
+h1{font-size:28px;margin:8px 0 4px}
+.muted{color:var(--muted);font-size:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin:18px 0}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+input,button{border-radius:8px;border:1px solid var(--line);padding:12px;font-size:15px}
+input{background:#0e0e10;color:white;flex:1;min-width:180px}
+button{cursor:pointer;background:var(--gold);color:#16120a;font-weight:bold;border:0}
+.secondary{background:#29292c;color:white;border:1px solid var(--line)}
+#reader{width:100%;max-width:480px;margin:14px auto}
+.pill{display:inline-block;border:1px solid #45454a;border-radius:99px;padding:5px 9px;font-size:12px;color:var(--gold)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:16px}
+.field{padding:10px;border:1px solid var(--line);border-radius:8px;overflow-wrap:anywhere}
+.field small{display:block;color:var(--muted);margin-bottom:5px}
+.field b{font-size:14px}
+.linked{margin-top:12px;padding:12px;border-left:3px solid var(--gold);background:#202023}
+a{color:var(--gold)}
+.error{color:#ff9c9c}.ok{color:#9ce0ad}
+</style>
 </head>
-
 <body>
-  <main class="container">
-    <header>
-      <div class="brand-mark">S</div>
-      <div>
-        <h1>SUTARIYA JEWELS</h1>
-        <p>JEWELRY & DIAMOND INVENTORY</p>
-      </div>
-    </header>
+<main class="wrap">
+  <div class="brand">SUTARIYA JEWELS &amp; DIAMOND INC.</div>
+  <h1>Inventory Scanner</h1>
+  <div class="muted">Scan a jewelry or diamond QR code, or enter its ID.</div>
 
-    <section class="panel">
-      <h2 class="section-heading">
-        <span class="section-icon">▦</span>
-        Scan an item
-      </h2>
-      <p class="subtext">Scan a jewelry tag or diamond QR code/barcode.</p>
+  <section class="panel">
+    <form id="searchForm" class="row">
+      <input id="itemCode" autocomplete="off" placeholder="e.g. SB001 or SJD-R01" required>
+      <button type="submit">Search</button>
+    </form>
+    <div class="row" style="margin-top:12px">
+      <button id="startBtn" type="button">Start camera</button>
+      <button id="stopBtn" type="button" class="secondary">Stop camera</button>
+      <a id="dashboardLink" href="#" style="align-self:center;margin-left:auto">Dashboard</a>
+    </div>
+    <div id="reader"></div>
+    <div id="status" class="muted" aria-live="polite">Ready.</div>
+  </section>
 
-      <div id="reader"></div>
+  <section class="panel" id="result" hidden></section>
+</main>
 
-      <div class="button-row">
-        <button id="startButton" class="primary" type="button">
-          Start Camera
-        </button>
-        <button id="stopButton" class="secondary" type="button" disabled>
-          Stop Camera
-        </button>
-      </div>
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec";
+document.getElementById("dashboardLink").href = API_URL + "?admin=1";
 
-      <p id="cameraStatus" aria-live="polite">
-        Camera is stopped. Start it when you are ready to scan.
-      </p>
+let qrScanner = null;
+let cameraRunning = false;
+let busy = false;
+let callbackNumber = 0;
+let lastCode = "";
+let lastAt = 0;
 
-      <div class="tip">
-        <span class="tip-symbol">◆</span>
-        <span>The camera stops after each successful scan. Start it again for the next item.</span>
-      </div>
-    </section>
+const $ = id => document.getElementById(id);
 
-    <section class="panel">
-      <h2 class="section-heading">
-        <span class="section-icon">⌕</span>
-        Find an item
-      </h2>
+$("searchForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  searchItem($("itemCode").value);
+});
+$("startBtn").addEventListener("click", startScanner);
+$("stopBtn").addEventListener("click", stopScanner);
 
-      <form id="searchForm">
-        <div class="search-row">
-          <input
-            id="itemInput"
-            type="text"
-            placeholder="SB001 or SJD-O01"
-            autocomplete="off"
-            autocapitalize="characters"
-            enterkeyhint="search"
-          >
-          <button id="searchButton" class="gold-button" type="submit">
-            Search
-          </button>
-        </div>
-      </form>
+function setStatus(message, cls) {
+  $("status").className = cls || "muted";
+  $("status").textContent = message;
+}
 
-      <p id="apiStatus" aria-live="polite">
-        Ready to search inventory.
-      </p>
-    </section>
+async function startScanner() {
+  if (cameraRunning || busy) return;
+  try {
+    if (!qrScanner) qrScanner = new Html5Qrcode("reader");
+    setStatus("Requesting camera permission…");
+    await qrScanner.start(
+      {facingMode:"environment"},
+      {fps:10,qrbox:{width:230,height:230}},
+      onCodeDetected,
+      function(){}
+    );
+    cameraRunning = true;
+    setStatus("Camera is on. Point it at a QR code.","ok");
+  } catch (e) {
+    setStatus("Could not start camera. Allow camera permission and use HTTPS. " + (e.message || ""),"error");
+  }
+}
 
-    <section class="panel">
-      <div id="result" aria-live="polite">
-        <div class="empty">
-          Scan a tag or enter an item ID to view its inventory details.
-        </div>
-      </div>
-    </section>
+async function stopScanner() {
+  if (!qrScanner || !cameraRunning) return;
+  try { await qrScanner.stop(); } catch(e) {}
+  try { qrScanner.clear(); } catch(e) {}
+  cameraRunning = false;
+}
 
-    <div class="footer">SUTARIYA JEWELS · INVENTORY SYSTEM</div>
-  </main>
+async function onCodeDetected(raw) {
+  const code = String(raw || "").trim();
+  if (!code || busy) return;
+  const now = Date.now();
+  if (code === lastCode && now - lastAt < 2500) return;
 
-  <script>
-    "use strict";
+  lastCode = code;
+  lastAt = now;
+  busy = true;
+  $("itemCode").value = code;
 
-    const API_URL =
-      "https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec";
+  try {
+    setStatus("QR detected. Stopping camera…");
+    await stopScanner();
+    await searchItem(code);
+  } finally {
+    busy = false;
+  }
+}
 
-    let scanner = null;
-    let cameraRunning = false;
-    let cameraStarting = false;
-    let cameraStopping = false;
-    let scanProcessing = false;
-    let startPromise = null;
-    let stopPromise = null;
-    let searchInProgress = false;
-    let requestNumber = 0;
-    let callbackNumber = 0;
-    let lastScannedId = "";
-    let lastScannedAt = 0;
+function searchItem(raw) {
+  const code = String(raw || "").trim();
+  if (!code) {
+    setStatus("Enter or scan an ID.","error");
+    return Promise.resolve(null);
+  }
 
-    const reader = document.getElementById("reader");
-    const startButton = document.getElementById("startButton");
-    const stopButton = document.getElementById("stopButton");
-    const searchButton = document.getElementById("searchButton");
-    const searchForm = document.getElementById("searchForm");
-    const itemInput = document.getElementById("itemInput");
-    const cameraStatus = document.getElementById("cameraStatus");
-    const apiStatus = document.getElementById("apiStatus");
-    const result = document.getElementById("result");
+  return new Promise(resolve => {
+    const cb = "sjdCallback" + (++callbackNumber) + "_" + Date.now();
+    const script = document.createElement("script");
+    let finished = false;
 
-    function cleanId(value) {
-      return String(value == null ? "" : value)
-        .replace(/^[\s"'`]+|[\s"'`]+$/g, "")
-        .trim()
-        .toUpperCase();
-    }
+    function finish(data) {
+      if (finished) return;
+      finished = true;
+      try { delete window[cb]; } catch(e) {}
+      script.remove();
 
-    function errorText(error) {
-      return error && error.message
-        ? error.message
-        : String(error || "Unknown error");
-    }
-
-    function setCameraStatus(message, type) {
-      cameraStatus.textContent = message;
-      cameraStatus.className = type || "";
-    }
-
-    function updateButtons() {
-      startButton.disabled =
-        cameraRunning || cameraStarting || cameraStopping;
-
-      stopButton.disabled =
-        (!cameraRunning && !cameraStarting) || cameraStopping;
-
-      searchButton.disabled = searchInProgress;
-
-      startButton.textContent = cameraStarting
-        ? "Starting..."
-        : cameraRunning
-          ? "Camera Running"
-          : cameraStopping
-            ? "Stopping..."
-            : "Start Camera";
-
-      searchButton.textContent = searchInProgress
-        ? "Searching..."
-        : "Search";
-    }
-
-    function showMessage(message) {
-      result.replaceChildren();
-
-      const element = document.createElement("div");
-      element.className = "empty";
-      element.textContent = message;
-
-      result.appendChild(element);
-    }
-
-    function delay(ms) {
-      return new Promise(function(resolve) {
-        setTimeout(resolve, ms);
-      });
-    }
-
-    async function startScanner() {
-      if (cameraRunning || cameraStarting || cameraStopping) return;
-
-      if (stopPromise) {
-        try {
-          await stopPromise;
-        } catch (_) {}
+      if (data && data.found) {
+        renderItem(data);
+        setStatus("Item found.","ok");
+      } else {
+        renderNotFound(data && data.message || "No matching item found.","error");
       }
-
-      cameraStarting = true;
-      updateButtons();
-      setCameraStatus("Requesting camera access...");
-
-      startPromise = (async function() {
-        try {
-          if (typeof Html5Qrcode === "undefined") {
-            throw new Error(
-              "The camera library did not load. Refresh the page and check your internet connection."
-            );
-          }
-
-          if (!scanner) {
-            scanner = new Html5Qrcode("reader", { verbose: false });
-          }
-
-          const formats = [
-            Html5QrcodeSupportedFormats.QR_CODE,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.ITF
-          ];
-
-          await scanner.start(
-            { facingMode: "environment" },
-            {
-              fps: 10,
-              formatsToSupport: formats,
-              qrbox: function(width, height) {
-                const size = Math.max(
-                  120,
-                  Math.min(
-                    280,
-                    Math.floor(Math.min(width, height) * 0.75)
-                  )
-                );
-
-                return { width: size, height: size };
-              },
-              aspectRatio: 1
-            },
-            function(decodedText) {
-              onCodeDetected(decodedText);
-            },
-            function() {
-              // No code in this frame; keep scanning.
-            }
-          );
-
-          cameraRunning = true;
-          setCameraStatus(
-            "Camera ready. Scan one item; the camera will then stop.",
-            "success"
-          );
-
-        } catch (error) {
-          console.error("Camera start error:", error);
-          cameraRunning = false;
-          setCameraStatus(
-            "Could not start camera: " + errorText(error),
-            "error"
-          );
-          await disposeScanner();
-        } finally {
-          cameraStarting = false;
-          startPromise = null;
-          updateButtons();
-        }
-      })();
-
-      return startPromise;
+      resolve(data);
     }
 
-    async function disposeScanner() {
-      const oldScanner = scanner;
-      scanner = null;
-      cameraRunning = false;
-
-      if (!oldScanner) return;
-
-      try {
-        await oldScanner.stop();
-      } catch (_) {}
-
-      try {
-        await oldScanner.clear();
-      } catch (_) {}
-    }
-
-    async function stopScanner() {
-      if (stopPromise) return stopPromise;
-
-      if (cameraStarting && startPromise) {
-        try {
-          await startPromise;
-        } catch (_) {}
-      }
-
-      if (!scanner && !cameraRunning) {
-        setCameraStatus("Camera is stopped.");
-        updateButtons();
-        return;
-      }
-
-      cameraStopping = true;
-      updateButtons();
-      setCameraStatus("Stopping camera...");
-
-      stopPromise = (async function() {
-        try {
-          await disposeScanner();
-          await delay(200);
-
-          setCameraStatus(
-            "Camera stopped. Start it again when ready for the next item.",
-            "success"
-          );
-        } catch (error) {
-          setCameraStatus(
-            "Could not stop camera: " + errorText(error),
-            "error"
-          );
-        } finally {
-          cameraRunning = false;
-          cameraStopping = false;
-          stopPromise = null;
-          updateButtons();
-        }
-      })();
-
-      return stopPromise;
-    }
-
-    async function onCodeDetected(rawCode) {
-      const id = cleanId(rawCode);
-
-      if (
-        !id ||
-        scanProcessing ||
-        searchInProgress ||
-        cameraStopping
-      ) {
-        return;
-      }
-
-      const now = Date.now();
-
-      if (
-        id === lastScannedId &&
-        now - lastScannedAt < 1800
-      ) {
-        return;
-      }
-
-      scanProcessing = true;
-      lastScannedId = id;
-      lastScannedAt = now;
-      itemInput.value = id;
-
-      try {
-        // Stop the camera before looking up the scanned item.
-        await stopScanner();
-        await searchItem(id);
-      } finally {
-        scanProcessing = false;
-      }
-    }
-
-    function callInventoryApi(id) {
-      return new Promise(function(resolve, reject) {
-        const callbackName =
-          "sjdCallback" + Date.now() + "_" + (++callbackNumber);
-
-        const script = document.createElement("script");
-        let finished = false;
-
-        const timeout = setTimeout(function() {
-          finish(new Error(
-            "Apps Script did not respond. Check the API URL and web app access settings."
-          ));
-        }, 15000);
-
-        function cleanup() {
-          clearTimeout(timeout);
-          script.remove();
-
-          try {
-            delete window[callbackName];
-          } catch (_) {
-            window[callbackName] = undefined;
-          }
-        }
-
-        function finish(error, data) {
-          if (finished) return;
-          finished = true;
-          cleanup();
-
-          if (error) {
-            reject(error);
-          } else {
-            resolve(data);
-          }
-        }
-
-        window[callbackName] = function(data) {
-          finish(null, data);
-        };
-
-        script.onerror = function() {
-          finish(new Error(
-            "Could not connect to Apps Script. Check the deployment URL and permissions."
-          ));
-        };
-
-        script.src = API_URL +
-          "?api=1&code=" + encodeURIComponent(id) +
-          "&callback=" + encodeURIComponent(callbackName) +
-          "&_=" + Date.now();
-
-        document.head.appendChild(script);
-      });
-    }
-
-    async function searchItem(scannedId) {
-      const id = cleanId(
-        scannedId !== undefined ? scannedId : itemInput.value
-      );
-
-      if (!id) {
-        showMessage("Enter or scan an item ID first.");
-        return;
-      }
-
-      if (searchInProgress) return;
-
-      itemInput.value = id;
-      searchInProgress = true;
-
-      const thisRequest = ++requestNumber;
-
-      updateButtons();
-      apiStatus.className = "";
-      apiStatus.textContent = "Searching inventory...";
-      showMessage("Searching for " + id + "...");
-
-      try {
-        const data = await callInventoryApi(id);
-
-        if (thisRequest !== requestNumber) return;
-
-        console.log("Inventory API response:", data);
-
-        apiStatus.textContent = "Inventory connection successful.";
-        apiStatus.className = "success";
-
-        if (!data || data.found !== true) {
-          showMessage(
-            data && data.message
-              ? data.message
-              : "No matching item found for " + id
-          );
-          return;
-        }
-
-        displayItem(data);
-
-      } catch (error) {
-        if (thisRequest !== requestNumber) return;
-
-        console.error("Inventory API error:", error);
-
-        apiStatus.className = "error";
-        apiStatus.textContent = "Inventory connection failed.";
-        showMessage(errorText(error));
-
-      } finally {
-        if (thisRequest === requestNumber) {
-          searchInProgress = false;
-          updateButtons();
-        }
-      }
-    }
-
-    function addDetail(parent, labelText, value) {
-      if (
-        value === null ||
-        value === undefined ||
-        String(value).trim() === ""
-      ) {
-        return;
-      }
-
-      const row = document.createElement("div");
-      row.className = "detail-row";
-
-      const label = document.createElement("span");
-      label.className = "detail-label";
-      label.textContent = labelText;
-
-      const val = document.createElement("div");
-      val.className = "detail-value";
-      val.textContent = String(value);
-
-      row.appendChild(label);
-      row.appendChild(val);
-      parent.appendChild(row);
-    }
-
-    function displayRecordFields(parent, record) {
-      if (!record || typeof record !== "object") return;
-
-      Object.keys(record).forEach(function(key) {
-        const value = record[key];
-        const normalized = key.trim().toLowerCase();
-
-        if (
-          [
-            "photo",
-            "image",
-            "photo url",
-            "image url",
-            "barcode image"
-          ].includes(normalized) ||
-          value === null ||
-          value === undefined ||
-          String(value).trim() === "" ||
-          typeof value === "object"
-        ) {
-          return;
-        }
-
-        addDetail(parent, key, value);
-      });
-    }
-
-    function makeLinkedCard(title, record) {
-      const card = document.createElement("div");
-      card.className = "linked-card";
-
-      const heading = document.createElement("div");
-      heading.className = "linked-card-title";
-      heading.textContent = title;
-
-      card.appendChild(heading);
-      displayRecordFields(card, record || {});
-
-      return card;
-    }
-
-    function displayItem(data) {
-      result.replaceChildren();
-
-      const record = data.record && typeof data.record === "object"
-        ? data.record
-        : {};
-
-      const isDiamond =
-        String(data.recordType || "").toUpperCase() === "DIAMOND";
-
-      const heading = document.createElement("h2");
-      heading.className = "section-heading";
-      heading.textContent = isDiamond
-        ? "Diamond Details"
-        : "Jewelry Details";
-
-      result.appendChild(heading);
-
-      const id = document.createElement("div");
-      id.className = "item-id";
-      id.textContent = data.id || itemInput.value;
-      result.appendChild(id);
-
-      const badge = document.createElement("span");
-      badge.className = "type-badge";
-      badge.textContent = isDiamond
-        ? "DIAMOND / STONE"
-        : "FINISHED JEWELRY";
-
-      result.appendChild(badge);
-
-      displayRecordFields(result, record);
-
-      // Show an actual image only if a URL is returned.
-      // A product-page URL is offered as a link instead.
-      const photoUrl = data.photoUrl || "";
-
-      if (/^https?:\/\//i.test(photoUrl)) {
-        const looksLikeImage = /\.(png|jpe?g|gif|webp|avif)(\?.*)?$/i
-          .test(photoUrl);
-
-        if (looksLikeImage) {
-          const photo = document.createElement("img");
-          photo.className = "item-photo";
-          photo.alt = "Inventory item photo";
-          photo.src = photoUrl;
-          photo.onerror = function() {
-            photo.remove();
-          };
-          result.appendChild(photo);
-        } else {
-          const link = document.createElement("a");
-          link.className = "external-photo-link";
-          link.href = photoUrl;
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          link.textContent = "Open product/photo link";
-          result.appendChild(link);
-        }
-      }
-
-      // Scanning a jewelry item shows its assigned stones.
-      if (Array.isArray(data.linkedDiamonds) &&
-          data.linkedDiamonds.length) {
-        const section = document.createElement("div");
-        section.className = "linked-section";
-
-        const linkedHeading = document.createElement("h3");
-        linkedHeading.className = "linked-heading";
-        linkedHeading.textContent =
-          "Diamonds assigned to this jewelry (" +
-          data.linkedDiamonds.length + ")";
-
-        section.appendChild(linkedHeading);
-
-        data.linkedDiamonds.forEach(function(stone) {
-          section.appendChild(
-            makeLinkedCard(
-              "Stone ID: " + (stone.id || "Unknown"),
-              stone.record
-            )
-          );
-        });
-
-        result.appendChild(section);
-      }
-
-      // Scanning an assigned diamond shows the jewelry that uses it.
-      if (isDiamond) {
-        const linkedJewelry = data.linkedJewelry;
-
-        if (linkedJewelry && linkedJewelry.found) {
-          const section = document.createElement("div");
-          section.className = "linked-section";
-
-          const linkedHeading = document.createElement("h3");
-          linkedHeading.className = "linked-heading";
-          linkedHeading.textContent = "Used in this jewelry";
-
-          section.appendChild(linkedHeading);
-
-          const note = document.createElement("div");
-          note.className = "relation-note";
-          note.textContent =
-            "This diamond is assigned to jewelry ID " +
-            linkedJewelry.id + ".";
-
-          section.appendChild(note);
-
-          section.appendChild(
-            makeLinkedCard(
-              "Jewelry ID: " + linkedJewelry.id,
-              linkedJewelry.record
-            )
-          );
-
-          if (
-            Array.isArray(linkedJewelry.linkedDiamonds) &&
-            linkedJewelry.linkedDiamonds.length
-          ) {
-            const stonesHeading = document.createElement("h3");
-            stonesHeading.className = "linked-heading";
-            stonesHeading.style.marginTop = "16px";
-            stonesHeading.textContent =
-              "All diamonds assigned to " + linkedJewelry.id;
-
-            section.appendChild(stonesHeading);
-
-            linkedJewelry.linkedDiamonds.forEach(function(stone) {
-              section.appendChild(
-                makeLinkedCard(
-                  "Stone ID: " + (stone.id || "Unknown"),
-                  stone.record
-                )
-              );
-            });
-          }
-
-          result.appendChild(section);
-
-        } else {
-          const jewelryId = data.linkedJewelryId ||
-            (record["Jewelry ID"] || "");
-
-          if (String(jewelryId).trim()) {
-            const note = document.createElement("div");
-            note.className = "relation-note";
-            note.textContent =
-              "Assigned Jewelry ID: " + jewelryId +
-              ". The matching jewelry record was not found in INVENTORY.";
-
-            result.appendChild(note);
-          } else {
-            const note = document.createElement("div");
-            note.className = "relation-note";
-            note.textContent =
-              "No Jewelry ID is assigned. This diamond is recorded as a loose or unassigned stone.";
-
-            result.appendChild(note);
-          }
-        }
-      }
-
-      if (!Object.keys(record).length) {
-        addDetail(
-          result,
-          "Status",
-          "The item was found, but no record fields were returned."
-        );
-      }
-    }
-
-    // Search button and Enter key.
-    searchForm.addEventListener("submit", function(event) {
-      event.preventDefault();
-      searchItem();
+    window[cb] = finish;
+    script.onerror = () => finish({
+      found:false,
+      message:"API request failed. Check the Apps Script deployment."
     });
+    script.src = API_URL + "?api=1&code=" +
+      encodeURIComponent(code) + "&callback=" + cb;
+    document.body.appendChild(script);
+  });
+}
 
-    // Camera controls.
-    startButton.addEventListener("click", function() {
-      startScanner();
+function renderNotFound(message, cls) {
+  $("result").hidden = false;
+  $("result").innerHTML = "<h2>Lookup result</h2><p class=\"" +
+    (cls || "") + "\">" + esc(message) + "</p>";
+}
+
+function renderItem(data) {
+  const rec = data.record || {};
+  let html = '<div class="row"><span class="pill">' +
+    esc(data.recordType || "ITEM") + '</span><span class="pill">' +
+    esc(data.id || "") + '</span></div><h2>' +
+    esc(rec.Product || rec.Shape || rec["Stone ID"] || data.id || "Inventory item") +
+    '</h2><div class="muted">' + esc(data.sheetName || "") +
+    ' · row ' + esc(data.rowNumber || "") +
+    '</div><div class="fields">';
+
+  Object.keys(rec).forEach(k => {
+    if (rec[k] !== "" && rec[k] != null) {
+      html += '<div class="field"><small>' + esc(k) +
+        '</small><b>' + esc(rec[k]) + '</b></div>';
+    }
+  });
+  html += '</div>';
+
+  const linked = data.linkedDiamonds || [];
+  if (linked.length) {
+    html += '<div class="linked"><b>Linked diamonds (' +
+      linked.length + ')</b>';
+    linked.forEach(d => {
+      const r = d.record || {};
+      html += '<div style="margin-top:8px">' + esc(d.id || "") +
+        ' — ' + esc(r.Shape || "Diamond") + ' ' +
+        esc(r["Target CT"] || "") + ' ct</div>';
     });
+    html += '</div>';
+  }
 
-    stopButton.addEventListener("click", function() {
-      stopScanner();
-    });
+  if (data.linkedJewelry) {
+    html += '<div class="linked"><b>Assigned to jewelry</b><div>' +
+      esc(data.linkedJewelry.id || "") + '</div></div>';
+  } else if (data.linkedJewelryId) {
+    html += '<div class="linked">Jewelry ID: ' +
+      esc(data.linkedJewelryId) + '</div>';
+  }
 
-    // Clear scan-repeat protection when the user edits the ID.
-    itemInput.addEventListener("input", function() {
-      lastScannedId = "";
-      lastScannedAt = 0;
-    });
+  $("result").hidden = false;
+  $("result").innerHTML = html;
+}
 
-    window.addEventListener("pagehide", function() {
-      if (scanner && cameraRunning) {
-        scanner.stop().catch(function() {});
-      }
-    });
-
-    updateButtons();
-  </script>
+function esc(v) {
+  return String(v == null ? "" : v).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+</script>
 </body>
 </html>

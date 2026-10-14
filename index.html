@@ -1,159 +1,25 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <title>Sutariya Jewels Scanner</title>
-  <style>
-    body{margin:0;padding:20px;background:#101010;color:#f4f0e7;font:15px Arial}
-    h1{color:#d6b36a;font-size:24px}
-    .muted{color:#aaa}
-    .panel{max-width:650px;margin:auto}
-    video{width:100%;background:#000;border-radius:12px}
-    button,input{font:inherit;padding:12px;border-radius:7px;margin:5px 0}
-    button{background:#d6b36a;border:0;cursor:pointer}
-    input{width:100%;box-sizing:border-box;background:#222;color:white;border:1px solid #555}
-    #result{margin-top:16px;padding:15px;border:1px solid #444;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}
-  </style>
+
+  <meta
+    http-equiv="refresh"
+    content="0;url=https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec"
+  >
 </head>
+
 <body>
-<div class="panel">
-  <h1>SUTARIYA JEWELS</h1>
-  <p class="muted">Inventory QR / barcode lookup</p>
-  <video id="video" playsinline muted></video>
-  <div>
-    <button onclick="startCamera()">Start camera</button>
-    <button onclick="stopCamera()">Stop camera</button>
-  </div>
-  <p class="muted">If camera scanning is unavailable, enter the SKU or barcode below.</p>
-  <input id="code" placeholder="SB001 or SJD-R01">
-  <button onclick="lookup(document.getElementById('code').value)">Find item</button>
-  <div id="result">Ready.</div>
-</div>
-
-<script>
-const API_URL = "https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec";
-
-let stream = null, detector = null, running = false;
-let lastCode = "", lastTime = 0;
-
-const video = document.getElementById("video");
-const result = document.getElementById("result");
-
-function show(text){ result.textContent = text; }
-
-async function startCamera(){
-  try{
-    if(!("BarcodeDetector" in window)){
-      show("Camera barcode scanning is not supported by this browser. Enter the code manually.");
-      return;
-    }
-    detector = new BarcodeDetector({
-      formats:["qr_code","code_128","code_39","ean_13","ean_8","upc_a","upc_e"]
-    });
-    stream = await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:"environment"}},audio:false
-    });
-    video.srcObject = stream;
-    await video.play();
-    running = true;
-    show("Camera running. Point it at a code.");
-    scanLoop();
-  }catch(e){
-    stopCamera();
-    show("Camera error: "+e.message+". Check permission and use HTTPS.");
-  }
-}
-
-async function scanLoop(){
-  if(!running) return;
-  try{
-    if(video.readyState >= 2){
-      const codes = await detector.detect(video);
-      if(codes.length && codes[0].rawValue){
-        const code = codes[0].rawValue.trim(), now = Date.now();
-        if(code !== lastCode || now-lastTime > 2500){
-          lastCode=code; lastTime=now;
-          stopCamera();
-          document.getElementById("code").value=code;
-          lookup(code);
-          return;
-        }
-      }
-    }
-  }catch(e){}
-  if(running) requestAnimationFrame(scanLoop);
-}
-
-function stopCamera(){
-  running=false;
-  if(stream) stream.getTracks().forEach(t=>t.stop());
-  stream=null;
-  video.srcObject=null;
-}
-
-function lookup(raw){
-  const code=String(raw||"").trim();
-  if(!code){show("Enter a SKU or barcode.");return;}
-
-  show("Searching…");
-  const callback="lookupCallback_"+Date.now()+"_"+Math.floor(Math.random()*10000);
-  const script=document.createElement("script");
-  const timeout=setTimeout(()=>{
-    delete window[callback];
-    script.remove();
-    show("Request timed out. Check your Apps Script deployment and API response.");
-  },15000);
-
-  window[callback]=data=>{
-    clearTimeout(timeout);
-    delete window[callback];
-    script.remove();
-
-    if(!data){
-      show("The server returned an empty response.");
-      return;
-    }
-
-    // Accept either {success,item} or {found,...} response formats.
-    const found = data.success === true || data.found === true;
-    if(!found){
-      show(data.error || data.message || "No matching item found.");
-      return;
-    }
-
-    const item = data.item || data;
-    let output = "ITEM\n" + pretty(item);
-
-    if(data.diamonds && data.diamonds.length){
-      output += "\n\nLINKED DIAMONDS ("+data.diamonds.length+")";
-      data.diamonds.forEach((d,i)=>output+="\n\nDiamond "+(i+1)+"\n"+pretty(d));
-    }
-
-    if(data.jewelry) output += "\n\nRELATED JEWELRY\n"+pretty(data.jewelry);
-
-    show(output);
-  };
-
-  script.onerror=()=>{
-    clearTimeout(timeout);
-    delete window[callback];
-    script.remove();
-    show("Lookup failed. Confirm that Apps Script is deployed as a web app and that the API URL is correct.");
-  };
-
-  script.src=API_URL+"?api=1&code="+encodeURIComponent(code)+"&callback="+encodeURIComponent(callback);
-  document.body.appendChild(script);
-}
-
-function pretty(obj){
-  if(typeof obj !== "object" || obj === null) return String(obj ?? "");
-  return Object.keys(obj)
-    .filter(k=>!k.startsWith("_") && k!=="found" && k!=="success" && k!=="diamonds")
-    .map(k=>k+": "+(obj[k]==null?"":typeof obj[k]==="object"?JSON.stringify(obj[k]):obj[k]))
-    .join("\n");
-}
-</script>
+  <p>
+    Opening Sutariya Jewels Scanner…
+    If you are not redirected,
+    <a href="https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec">
+      open the scanner
+    </a>.
+  </p>
 </body>
 </html>

@@ -5,7 +5,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sutariya Jewels Inventory</title>
-
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
@@ -27,10 +26,7 @@
       font-family: Arial, Helvetica, sans-serif;
     }
 
-    .container {
-      max-width: 760px;
-      margin: 0 auto;
-    }
+    .container { max-width: 760px; margin: 0 auto; }
 
     header {
       text-align: center;
@@ -41,17 +37,8 @@
       border-radius: 14px;
     }
 
-    h1 {
-      margin: 0 0 7px;
-      font-size: 26px;
-      letter-spacing: 1px;
-    }
-
-    .subtitle {
-      margin: 0;
-      color: var(--muted);
-      font-size: 13px;
-    }
+    h1 { margin: 0 0 7px; font-size: 26px; letter-spacing: 1px; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 13px; }
 
     .panel, .item-card {
       background: #fff;
@@ -61,10 +48,7 @@
       margin-bottom: 16px;
     }
 
-    .search-row {
-      display: flex;
-      gap: 8px;
-    }
+    .search-row { display: flex; gap: 8px; }
 
     input {
       flex: 1;
@@ -85,15 +69,9 @@
       cursor: pointer;
     }
 
-    button:disabled {
-      opacity: .55;
-      cursor: wait;
-    }
+    button:disabled { opacity: .55; cursor: wait; }
 
-    .gold-button {
-      background: var(--gold);
-      color: #17130c;
-    }
+    .gold-button { background: var(--gold); color: #17130c; }
 
     .button-row {
       display: flex;
@@ -102,9 +80,7 @@
       margin-top: 12px;
     }
 
-    .button-row button {
-      flex: 1;
-    }
+    .button-row button { flex: 1; }
 
     #reader {
       width: 100%;
@@ -122,10 +98,7 @@
 
     #results:empty { display: none; }
 
-    .item-card h2 {
-      font-size: 19px;
-      margin: 0 0 5px;
-    }
+    .item-card h2 { font-size: 19px; margin: 0 0 5px; }
 
     .item-type {
       display: inline-block;
@@ -207,9 +180,11 @@
     }
 
     .price-value {
+      display: block;
       font-size: 20px;
       font-weight: bold;
       overflow-wrap: anywhere;
+      color: #17130c;
     }
 
     .section-title {
@@ -226,10 +201,7 @@
       margin-top: 10px;
     }
 
-    .linked-card .display-id {
-      font-size: 14px;
-      margin-top: 8px;
-    }
+    .linked-card .display-id { font-size: 14px; margin-top: 8px; }
 
     .error {
       padding: 14px;
@@ -238,11 +210,7 @@
       border-radius: 8px;
     }
 
-    .empty-price {
-      color: #888;
-      font-size: 13px;
-      font-weight: normal;
-    }
+    .empty-price { color: #888; font-size: 13px; font-weight: normal; }
 
     footer {
       text-align: center;
@@ -255,7 +223,6 @@
       body { padding: 10px; }
       .search-row { flex-direction: column; }
       .search-row button { width: 100%; }
-      .details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .price-value { font-size: 17px; }
       h1 { font-size: 22px; }
     }
@@ -266,19 +233,15 @@
   <main class="container">
     <header>
       <h1>SUTARIYA JEWELS</h1>
-      <p class="subtitle">Jewelry & Diamond Inventory Scanner</p>
+      <p class="subtitle">Jewelry &amp; Diamond Inventory Scanner</p>
     </header>
 
     <section class="panel">
       <form id="searchForm">
         <div class="search-row">
-          <input
-            id="itemCode"
-            type="text"
+          <input id="itemCode" type="text"
             placeholder="Enter item ID, e.g. SB013 or SJD-O07"
-            autocomplete="off"
-            autocapitalize="characters"
-          >
+            autocomplete="off" autocapitalize="characters">
           <button id="searchButton" type="submit">Search</button>
         </div>
       </form>
@@ -287,9 +250,7 @@
         <button id="startCamera" class="gold-button" type="button">
           Start Camera Scanner
         </button>
-        <button id="stopCamera" type="button" disabled>
-          Stop Camera
-        </button>
+        <button id="stopCamera" type="button" disabled>Stop Camera</button>
       </div>
 
       <div id="reader"></div>
@@ -297,8 +258,7 @@
     </section>
 
     <section id="results" aria-live="polite"></section>
-
-    <footer>Sutariya Jewels & Diamond Inc.</footer>
+    <footer>Sutariya Jewels &amp; Diamond Inc.</footer>
   </main>
 
   <script>
@@ -352,14 +312,11 @@
         Math.floor(Math.random() * 100000);
 
       const script = document.createElement("script");
-      const timeout = window.setTimeout(() => {
-        cleanup();
-        showError(
-          "The inventory server did not respond. Please try again."
-        );
-      }, 20000);
+      let finished = false;
 
       function cleanup() {
+        if (finished) return;
+        finished = true;
         window.clearTimeout(timeout);
         lookupInProgress = false;
         searchButton.disabled = false;
@@ -367,8 +324,17 @@
         if (script.parentNode) script.parentNode.removeChild(script);
       }
 
+      const timeout = window.setTimeout(() => {
+        cleanup();
+        showError("The inventory server did not respond. Please try again.");
+      }, 20000);
+
       window[callbackName] = response => {
         cleanup();
+
+        // Diagnostic: view the returned pricing in the browser console.
+        console.log("Sutariya API response:", response);
+        console.log("Sutariya API pricing:", response && response.pricing);
 
         if (!response || response.found !== true) {
           showError(
@@ -390,8 +356,7 @@
         );
       };
 
-      script.src =
-        API_URL +
+      script.src = API_URL +
         "?api=1&code=" + encodeURIComponent(code) +
         "&callback=" + encodeURIComponent(callbackName) +
         "&_=" + Date.now();
@@ -401,30 +366,30 @@
 
     function showError(message) {
       resultsEl.replaceChildren();
-
       const box = document.createElement("div");
       box.className = "error";
       box.textContent = message;
       resultsEl.appendChild(box);
-
       setStatus("Search unsuccessful.");
     }
 
-    function formatSellingPrice(value) {
-      if (value === null || value === undefined || value === "") {
-        return "";
-      }
+    function normalizeField(value) {
+      return String(value == null ? "" : value)
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+    }
 
-      const amount = Number(
-        String(value).replace(/[$,\s]/g, "")
-      );
-
-      if (!Number.isFinite(amount)) return String(value);
-
-      return amount.toLocaleString("en-CA", {
-        style: "currency",
-        currency: "CAD"
-      });
+    function isPrivateField(key) {
+      const field = normalizeField(key);
+      const blocked = [
+        "cost", "costcad", "costusd", "margin",
+        "wholesalemargin", "retailmargin", "profit",
+        "wholesaleprofit", "retailprofit", "landedcost",
+        "finalprice", "finalpricecad", "finalpriceusd",
+        "priceperct", "wholesaleprice", "retailprice",
+        "sellingprice"
+      ];
+      return blocked.some(term => field === term || field.startsWith(term));
     }
 
     function appendText(parent, tag, className, text) {
@@ -437,7 +402,6 @@
 
     function appendImage(parent, url) {
       if (!url || !/^https?:\/\//i.test(String(url))) return;
-
       const image = document.createElement("img");
       image.className = "item-photo";
       image.src = url;
@@ -448,53 +412,21 @@
       parent.appendChild(image);
     }
 
-    function normalizeField(value) {
-      return String(value || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "");
-    }
-
-    function isPrivateField(key) {
-      const field = normalizeField(key);
-
-      const blocked = [
-        "cost", "costcad", "costusd", "margin",
-        "wholesalemargin", "retailmargin", "profit",
-        "wholesaleprofit", "retailprofit", "landedcost",
-        "finalprice", "finalpricecad", "finalpriceusd",
-        "priceperct", "wholesaleprice", "retailprice",
-        "sellingprice"
-      ];
-
-      return blocked.some(term =>
-        field === term || field.startsWith(term)
-      );
-    }
-
     function renderDetails(parent, record) {
       const details = document.createElement("div");
       details.className = "details";
 
       Object.entries(record || {}).forEach(([key, value]) => {
         if (isPrivateField(key)) return;
-        if (value === null || value === undefined || String(value).trim() === "") {
-          return;
-        }
+        if (value === null || value === undefined || String(value).trim() === "") return;
 
         const normalized = normalizeField(key);
-
-        // Avoid exposing internal image fields as plain text.
-        if (
-          normalized === "photo" ||
-          normalized === "photourl" ||
-          normalized === "image" ||
-          normalized === "imageurl" ||
-          normalized === "barcodeimage"
-        ) return;
+        if ([
+          "photo", "photourl", "image", "imageurl", "barcodeimage"
+        ].includes(normalized)) return;
 
         const detail = document.createElement("div");
         detail.className = "detail";
-
         appendText(detail, "span", "detail-label", key);
         appendText(detail, "span", "detail-value", value);
         details.appendChild(detail);
@@ -503,30 +435,75 @@
       if (details.children.length) parent.appendChild(details);
     }
 
+    // Supports camelCase API fields and common alternative header spellings.
+    function getPrice(pricing, names) {
+      if (!pricing || typeof pricing !== "object") return null;
+
+      const wanted = names.map(normalizeField);
+      for (const [key, value] of Object.entries(pricing)) {
+        if (!wanted.includes(normalizeField(key))) continue;
+        if (value === null || value === undefined || String(value).trim() === "") {
+          return null;
+        }
+        return value;
+      }
+      return null;
+    }
+
+    function formatSellingPrice(value) {
+      if (value === null || value === undefined || value === "") return "";
+
+      if (typeof value === "number" && Number.isFinite(value)) {
+        return value.toLocaleString("en-CA", {
+          style: "currency",
+          currency: "CAD"
+        });
+      }
+
+      let text = String(value).trim().replace(/[$\s]/g, "");
+
+      // Accept both 1,234.56 and 1234,56 number formats.
+      if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(text)) {
+        text = text.replace(/,/g, "");
+      } else if (/^-?\d+,\d{1,2}$/.test(text)) {
+        text = text.replace(",", ".");
+      }
+
+      const amount = Number(text);
+      if (!Number.isFinite(amount)) return String(value);
+
+      return amount.toLocaleString("en-CA", {
+        style: "currency",
+        currency: "CAD"
+      });
+    }
+
     function renderSellingPrices(parent, pricing) {
+      console.log("Rendering selling prices:", pricing);
+
       const section = document.createElement("div");
       section.className = "selling-prices";
 
       const values = [
-        ["Wholesale Price", pricing && pricing.wholesalePrice],
-        ["Retail Price", pricing && pricing.retailPrice]
+        {
+          label: "Wholesale Price",
+          value: getPrice(pricing, ["wholesalePrice", "wholesale price"])
+        },
+        {
+          label: "Retail Price",
+          value: getPrice(pricing, ["retailPrice", "retail price"])
+        }
       ];
 
-      values.forEach(([label, value]) => {
+      values.forEach(({ label, value }) => {
         const box = document.createElement("div");
         box.className = "price-box";
-
         appendText(box, "span", "price-label", label);
 
-        if (value === null || value === undefined || value === "") {
+        if (value === null) {
           appendText(box, "span", "empty-price", "Not set");
         } else {
-          appendText(
-            box,
-            "span",
-            "price-value",
-            formatSellingPrice(value)
-          );
+          appendText(box, "span", "price-value", formatSellingPrice(value));
         }
 
         section.appendChild(box);
@@ -536,12 +513,7 @@
     }
 
     function renderItem(response) {
-      const record =
-        response.record ||
-        response.item ||
-        response.data ||
-        response;
-
+      const record = response.record || response.item || response.data || response;
       const card = document.createElement("article");
       card.className = "item-card";
 
@@ -549,102 +521,63 @@
         response.recordType || record.recordType || record.type || "ITEM"
       ).toUpperCase();
 
-      appendText(
-        card,
-        "span",
-        "item-type",
+      appendText(card, "span", "item-type",
         recordType === "DIAMOND" ? "DIAMOND" :
-          recordType === "JEWELRY" ? "JEWELRY" : "ITEM"
-      );
+        recordType === "JEWELRY" ? "JEWELRY" : "ITEM");
 
-      const title =
-        getValue(record, ["Product", "Name", "Description", "Shape", "Type"]) ||
+      const title = getValue(record, ["Product", "Name", "Description", "Shape", "Type"]) ||
         (recordType === "DIAMOND" ? "Diamond Details" : "Jewelry Details");
 
       appendText(card, "h2", "", title);
+      appendText(card, "p", "display-id", "ID: " + (response.displayId || response.id || ""));
 
-      const id = response.displayId || response.id || "";
-      appendText(card, "p", "display-id", "ID: " + id);
-
-      appendImage(
-        card,
-        response.photoUrl ||
-        getValue(record, ["Photo URL", "Photo", "Image URL", "Image"])
-      );
+      appendImage(card, response.photoUrl ||
+        getValue(record, ["Photo URL", "Photo", "Image URL", "Image"]));
 
       renderDetails(card, record);
 
-      // Prices are returned separately from the private inventory fields.
-      renderSellingPrices(
-        card,
-        response.pricing || record.pricing || {}
-      );
+      // Prices are top-level properties in the confirmed API response.
+      renderSellingPrices(card, response.pricing);
 
       if (response.linkedJewelry) {
         appendText(card, "h3", "section-title", "Linked Jewelry");
         renderLinkedRecord(card, response.linkedJewelry);
       }
 
-      const linkedDiamonds =
-        response.linkedDiamonds ||
-        record.linkedDiamonds ||
-        [];
-
+      const linkedDiamonds = response.linkedDiamonds || record.linkedDiamonds || [];
       if (Array.isArray(linkedDiamonds) && linkedDiamonds.length) {
         appendText(card, "h3", "section-title", "Linked Diamonds");
-
-        linkedDiamonds.forEach(diamond => {
-          renderLinkedRecord(card, diamond);
-        });
+        linkedDiamonds.forEach(diamond => renderLinkedRecord(card, diamond));
       }
 
       resultsEl.replaceChildren(card);
     }
 
     function renderLinkedRecord(parent, response) {
-      const record =
-        response.record ||
-        response.item ||
-        response.data ||
-        response;
-
+      const record = response.record || response.item || response.data || response;
       const box = document.createElement("div");
       box.className = "linked-card";
 
-      const type = String(
-        response.recordType || record.recordType || "ITEM"
-      ).toUpperCase();
-
-      appendText(
-        box, "span", "item-type",
+      const type = String(response.recordType || record.recordType || "ITEM").toUpperCase();
+      appendText(box, "span", "item-type",
         type === "DIAMOND" ? "DIAMOND" :
-          type === "JEWELRY" ? "JEWELRY" : "ITEM"
-      );
+        type === "JEWELRY" ? "JEWELRY" : "ITEM");
 
-      const title =
-        getValue(record, ["Product", "Name", "Description", "Shape", "Type"]) ||
-        type;
+      appendText(box, "h2", "",
+        getValue(record, ["Product", "Name", "Description", "Shape", "Type"]) || type);
 
-      appendText(box, "h2", "", title);
+      appendText(box, "p", "display-id", "ID: " + (response.displayId || response.id || ""));
 
-      const id = response.displayId || response.id || "";
-      appendText(box, "p", "display-id", "ID: " + id);
-
-      appendImage(
-        box,
-        response.photoUrl ||
-        getValue(record, ["Photo URL", "Photo", "Image URL", "Image"])
-      );
+      appendImage(box, response.photoUrl ||
+        getValue(record, ["Photo URL", "Photo", "Image URL", "Image"]));
 
       renderDetails(box, record);
-      renderSellingPrices(box, response.pricing || record.pricing || {});
-
+      renderSellingPrices(box, response.pricing);
       parent.appendChild(box);
     }
 
     function getValue(record, candidates) {
       if (!record) return "";
-
       const wanted = candidates.map(normalizeField);
 
       for (const [key, value] of Object.entries(record)) {
@@ -654,7 +587,6 @@
           return String(value);
         }
       }
-
       return "";
     }
 
@@ -668,22 +600,14 @@
 
       try {
         setStatus("Requesting camera permission...");
-
-        if (!html5QrCode) {
-          html5QrCode = new Html5Qrcode("reader");
-        }
+        if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
         await html5QrCode.start(
           { facingMode: "environment" },
-          {
-            fps: 10,
-            qrbox: { width: 240, height: 180 },
-            aspectRatio: 1.333
-          },
+          { fps: 10, qrbox: { width: 240, height: 180 }, aspectRatio: 1.333 },
           decodedText => {
             const code = String(decodedText || "").trim();
             if (!code || code === lastScannedCode || lookupInProgress) return;
-
             lastScannedCode = code;
             input.value = code;
             lookupItem(code);
@@ -697,10 +621,8 @@
         setStatus("Camera active. Point it at an item's QR code.");
       } catch (error) {
         console.error("Camera error:", error);
-        setStatus(
-          "Could not start the camera. Allow camera access and use HTTPS. " +
-          (error && error.message ? error.message : "")
-        );
+        setStatus("Could not start the camera. Allow camera access and use HTTPS. " +
+          (error && error.message ? error.message : ""));
       }
     }
 

@@ -413,37 +413,47 @@
 
       if (details.children.length) parent.appendChild(details);
     }
+function renderSellingPrices(parent, pricing) {
+  if (!pricing) return;
 
-    function renderSellingPrices(parent, pricing) {
-      if (!pricing) return;
-      const section = document.createElement("div");
-      section.className = "selling-prices";
+  const section = document.createElement("div");
+  section.className = "selling-prices";
 
-      const items = [
-        { label: "Wholesale Price", total: pricing.wholesalePrice, perCt: pricing.wholesalePerCarat },
-        { label: "Retail Price", total: pricing.retailPrice, perCt: pricing.retailPerCarat }
-      ];
-
-      items.forEach(item => {
-        const box = document.createElement("div");
-        box.className = "price-box";
-        appendText(box, "span", "price-label", item.label);
-
-        if (item.total === null || item.total === undefined) {
-          appendText(box, "span", "empty-price", "Not set");
-        } else {
-          appendText(box, "span", "price-value", formatCurrency(item.total));
-          if (item.perCt !== null && item.perCt !== undefined && item.perCt > 0) {
-            appendText(box, "span", "per-carat-sub", formatCurrency(item.perCt) + " / ct");
-          }
-        }
-        section.appendChild(box);
-      });
-
-      parent.appendChild(section);
+  const items = [
+    { 
+      label: "Wholesale Price", 
+      total: pricing.wholesalePrice, 
+      perCt: pricing.wholesalePerCarat 
+    },
+    { 
+      label: "Retail Price", 
+      total: pricing.retailPrice, 
+      perCt: pricing.retailPerCarat 
     }
+  ];
 
-    function renderItem(response) {
+  items.forEach(item => {
+    const box = document.createElement("div");
+    box.className = "price-box";
+    appendText(box, "span", "price-label", item.label);
+
+    if (item.total === null || item.total === undefined) {
+      if (item.perCt) {
+        appendText(box, "span", "price-value", formatCurrency(item.perCt) + " / ct");
+      } else {
+        appendText(box, "span", "empty-price", "Not set");
+      }
+    } else {
+      appendText(box, "span", "price-value", formatCurrency(item.total));
+      if (item.perCt !== null && item.perCt !== undefined && item.perCt > 0) {
+        appendText(box, "span", "per-carat-sub", formatCurrency(item.perCt) + " / ct");
+      }
+    }
+    section.appendChild(box);
+  });
+
+  parent.appendChild(section);
+}    function renderItem(response) {
       const record = response.record || response;
       const card = document.createElement("article");
       card.className = "item-card";

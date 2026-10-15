@@ -329,25 +329,46 @@
         showError("The inventory server did not respond. Please try again.");
       }, 20000);
 
-      window[callbackName] = response => {
-        cleanup();
+    
+window[callbackName] = async response => {
+  cleanup();
 
-        // Diagnostic: view the returned pricing in the browser console.
-        console.log("Sutariya API response:", response);
-        console.log("Sutariya API pricing:", response && response.pricing);
+  console.log("Sutariya API response:", response);
+  console.log("Sutariya API pricing:", response && response.pricing);
 
-        if (!response || response.found !== true) {
-          showError(
-            response && response.message
-              ? response.message
-              : "No item found. Check the ID."
-          );
-          return;
-        }
+  if (!response || response.found !== true) {
+    showError(
+      response && response.message
+        ? response.message
+        : "No item found. Check the ID."
+    );
+    return;
+  }
 
-        renderItem(response);
-        setStatus("Item found: " + (response.displayId || response.id || code));
-      };
+  // Stop the camera after a successful lookup.
+  if (cameraRunning && html5QrCode) {
+    try {
+      await html5QrCode.stop();
+      await html5QrCode.clear();
+    } catch (error) {
+      console.warn("Could not stop camera after lookup:", error);
+    }
+
+    cameraRunning = false;
+    html5QrCode = null;
+    startCameraButton.disabled = false;
+    stopCameraButton.disabled = true;
+    lastScannedCode = "";
+  }
+
+  renderItem(response);
+  setStatus(
+    "Item found: " +
+    (response.displayId || response.id || code) +
+    ". Camera stopped — ready for the next item."
+  );
+};
+
 
       script.onerror = () => {
         cleanup();

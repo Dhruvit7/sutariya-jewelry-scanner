@@ -243,14 +243,18 @@ function renderItem(response) {
   heading.textContent = "Item Details";
   card.appendChild(heading);
 
-  const idElement = document.createElement("p");
-  idElement.className = "id";
-  idElement.textContent = displayIdWithCostKey(id, {
+  
+const idElement = document.createElement("p");
+idElement.className = "id";
+idElement.textContent =
+  response.displayId ||
+  displayIdWithCostKey(id, {
     ...record,
     recordType: record.recordType || response.recordType ||
                 response.record_type || record.type
   });
-  card.appendChild(idElement);
+card.appendChild(idElement);
+
 
   const photo = findField(record, [
     "Photo", "Image", "Image URL", "Photo URL"

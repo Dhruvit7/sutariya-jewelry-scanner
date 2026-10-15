@@ -97,22 +97,37 @@ function isPriceField(key) {
   return k.includes("wholesaleprice") || k.includes("retailprice");
 }
 
+
 function displayIdWithCostKey(id, data) {
-  const originalId = String(id || "");
+  const originalId = String(id || "").trim();
+
+  // Only add the key for loose diamonds.
   const type = String(data.recordType || data.type || "").toUpperCase();
+  if (type && type !== "DIAMOND" && type !== "DIAMONDS") {
+    return originalId;
+  }
 
-  if (type !== "DIAMOND") return originalId;
+  // Read Price Per CT from the DIAMONDS record.
+  const raw =
+    data["Price Per CT"] ??
+    data.pricePerCt ??
+    data.pricePerCT ??
+    data.price_per_ct;
 
-  const raw = data.landedCostPerCarat;
   if (raw === null || raw === undefined || String(raw).trim() === "") {
     return originalId;
   }
 
-  const cost = Number(raw);
-  if (!Number.isFinite(cost) || cost < 0) return originalId;
+  // Convert $82.50 to 8250.
+  const pricePerCt = Number(String(raw).replace(/[$,\s]/g, ""));
 
-  return originalId + "-K" + Math.round(cost * 100);
+  if (!Number.isFinite(pricePerCt) || pricePerCt < 0) {
+    return originalId;
+  }
+
+  return originalId + "-K" + Math.round(pricePerCt * 100);
 }
+
 
 function findValue(data, names) {
   const wanted = names.map(normalizedKey);

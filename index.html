@@ -4,488 +4,723 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sutariya Jewels Scanner</title>
+  <title>Sutariya Jewels Inventory</title>
+
   <script src="https://unpkg.com/html5-qrcode"></script>
+
   <style>
+    :root {
+      --gold: #c6a15b;
+      --dark: #151515;
+      --muted: #666;
+      --border: #e6e0d5;
+      --background: #f7f6f2;
+    }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       padding: 20px;
-      font-family: Arial, sans-serif;
-      color: #f5f5f5;
-      background: #111;
+      background: var(--background);
+      color: var(--dark);
+      font-family: Arial, Helvetica, sans-serif;
     }
-    .container { max-width: 650px; margin: auto; }
-    h1 { color: #d6b46a; text-align: center; }
-    .sub { text-align: center; color: #bbb; }
-    input, button {
-      width: 100%;
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      padding: 20px 10px;
+      margin-bottom: 18px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    h1 {
+      margin: 0 0 7px;
+      font-size: 26px;
+      letter-spacing: 1px;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .panel, .item-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
       padding: 13px;
-      margin: 7px 0;
+      border: 1px solid #ccc;
       border-radius: 8px;
       font-size: 16px;
     }
-    input {
-      border: 1px solid #555;
-      background: #222;
-      color: white;
-    }
+
     button {
+      padding: 12px 16px;
       border: 0;
-      background: #d6b46a;
-      color: #111;
+      border-radius: 8px;
+      background: var(--dark);
+      color: white;
       font-weight: bold;
       cursor: pointer;
     }
-    button.secondary { background: #333; color: white; }
-    #reader { margin-top: 12px; }
-    #message {
-      margin: 12px 0;
-      color: #ffd980;
+
+    button:disabled {
+      opacity: .55;
+      cursor: wait;
+    }
+
+    .gold-button {
+      background: var(--gold);
+      color: #17130c;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-top: 12px;
+    }
+
+    .button-row button {
+      flex: 1;
+    }
+
+    #reader {
+      width: 100%;
+      margin-top: 14px;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+
+    #status {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 14px;
       overflow-wrap: anywhere;
     }
-    .card {
-      background: #1d1d1d;
-      border: 1px solid #444;
-      border-radius: 12px;
-      padding: 16px;
+
+    #results:empty { display: none; }
+
+    .item-card h2 {
+      font-size: 19px;
+      margin: 0 0 5px;
+    }
+
+    .item-type {
+      display: inline-block;
+      margin: 0 0 12px;
+      padding: 5px 9px;
+      border-radius: 20px;
+      background: #f3ead7;
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: .6px;
+    }
+
+    .display-id {
+      font-size: 16px;
+      font-weight: bold;
+      overflow-wrap: anywhere;
+      margin: 0 0 14px;
+    }
+
+    .item-photo {
+      display: block;
+      width: 100%;
+      max-height: 320px;
+      object-fit: contain;
+      background: #fafafa;
+      border-radius: 9px;
+      margin: 0 0 14px;
+    }
+
+    .details {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+      margin: 14px 0;
+    }
+
+    .detail {
+      padding: 10px;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      min-width: 0;
+    }
+
+    .detail-label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 5px;
+      overflow-wrap: anywhere;
+    }
+
+    .detail-value {
+      font-size: 14px;
+      font-weight: bold;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .selling-prices {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
       margin-top: 18px;
     }
-    .card h2 { color: #d6b46a; margin-top: 0; }
-    .id {
-      font-size: 22px;
+
+    .price-box {
+      border: 1px solid var(--gold);
+      border-radius: 10px;
+      padding: 14px 10px;
+      background: #fffdf8;
+      min-width: 0;
+    }
+
+    .price-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 7px;
+    }
+
+    .price-value {
+      font-size: 20px;
       font-weight: bold;
-      color: #d6b46a;
       overflow-wrap: anywhere;
     }
-    .field {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      padding: 9px 0;
-      border-bottom: 1px solid #333;
+
+    .section-title {
+      border-top: 1px solid var(--border);
+      padding-top: 15px;
+      margin: 18px 0 10px;
+      font-size: 16px;
     }
-    .field span:first-child { color: #aaa; }
-    .field span:last-child {
-      text-align: right;
-      overflow-wrap: anywhere;
+
+    .linked-card {
+      border: 1px solid #eee;
+      padding: 13px;
+      border-radius: 10px;
+      margin-top: 10px;
     }
-    .price { font-size: 19px; color: #d6b46a; font-weight: bold; }
-    img.product-photo {
-      max-width: 100%;
-      max-height: 300px;
-      object-fit: contain;
+
+    .linked-card .display-id {
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    .error {
+      padding: 14px;
+      background: #fff0ee;
+      color: #9a271c;
+      border-radius: 8px;
+    }
+
+    .empty-price {
+      color: #888;
+      font-size: 13px;
+      font-weight: normal;
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 12px;
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 10px; }
+      .search-row { flex-direction: column; }
+      .search-row button { width: 100%; }
+      .details { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .price-value { font-size: 17px; }
+      h1 { font-size: 22px; }
     }
   </style>
 </head>
+
 <body>
-<div class="container">
-  <h1>SUTARIYA JEWELS</h1>
-  <p class="sub">Jewelry &amp; Diamond Inventory Scanner</p>
+  <main class="container">
+    <header>
+      <h1>SUTARIYA JEWELS</h1>
+      <p class="subtitle">Jewelry & Diamond Inventory Scanner</p>
+    </header>
 
-  <input id="searchInput"
-         placeholder="Enter ID (e.g. SJD-O07 or SB013)"
-         autocomplete="off">
-  <button id="searchButton" type="button">Search ID</button>
-  <button id="cameraButton" class="secondary" type="button">
-    Start Camera Scanner
-  </button>
-  <button id="stopButton" class="secondary" type="button">
-    Stop Camera
-  </button>
+    <section class="panel">
+      <form id="searchForm">
+        <div class="search-row">
+          <input
+            id="itemCode"
+            type="text"
+            placeholder="Enter item ID, e.g. SB013 or SJD-O07"
+            autocomplete="off"
+            autocapitalize="characters"
+          >
+          <button id="searchButton" type="submit">Search</button>
+        </div>
+      </form>
 
-  <div id="reader"></div>
-  <div id="message" role="status"></div>
-  <div id="result"></div>
-</div>
+      <div class="button-row">
+        <button id="startCamera" class="gold-button" type="button">
+          Start Camera Scanner
+        </button>
+        <button id="stopCamera" type="button" disabled>
+          Stop Camera
+        </button>
+      </div>
 
-<script>
-"use strict";
+      <div id="reader"></div>
+      <p id="status" role="status">Enter an ID or start the camera scanner.</p>
+    </section>
 
-const API_URL =
-  "https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec";
+    <section id="results" aria-live="polite"></section>
 
-let html5QrCode = null;
-let scannerRunning = false;
-let requestNumber = 0;
+    <footer>Sutariya Jewels & Diamond Inc.</footer>
+  </main>
 
-function setMessage(message) {
-  document.getElementById("message").textContent = message || "";
-}
+  <script>
+    "use strict";
 
-function normalizeKey(value) {
-  return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-}
+    const API_URL =
+      "https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec";
 
-function findField(record, possibleNames) {
-  if (!record || typeof record !== "object") return undefined;
+    const input = document.getElementById("itemCode");
+    const statusEl = document.getElementById("status");
+    const resultsEl = document.getElementById("results");
+    const searchButton = document.getElementById("searchButton");
+    const startCameraButton = document.getElementById("startCamera");
+    const stopCameraButton = document.getElementById("stopCamera");
 
-  const wanted = possibleNames.map(normalizeKey);
-  const actualKey = Object.keys(record).find(
-    key => wanted.includes(normalizeKey(key))
-  );
+    let html5QrCode = null;
+    let cameraRunning = false;
+    let lookupInProgress = false;
+    let lastScannedCode = "";
 
-  return actualKey === undefined ? undefined : record[actualKey];
-}
+    document.getElementById("searchForm").addEventListener("submit", event => {
+      event.preventDefault();
+      lookupItem(input.value);
+    });
 
-/*
- * Creates the display-only diamond ID key using Price Per CT.
- * Example: SJD-O07 + 82.50 = SJD-O07-K8250.
- *
- * This does not modify the ID in Google Sheets.
- */
-function displayIdWithCostKey(id, data) {
-  const originalId = String(id || "").trim();
-  if (!originalId) return "";
+    startCameraButton.addEventListener("click", startCamera);
+    stopCameraButton.addEventListener("click", stopCamera);
 
-  // Prefer an explicit record type, if the API supplies one.
-  const recordType = String(
-    data.recordType || data.record_type || data.type || ""
-  ).trim().toUpperCase();
+    function setStatus(message) {
+      statusEl.textContent = message;
+    }
 
-  // SB jewelry IDs should remain unchanged.
-  if (originalId.toUpperCase().startsWith("SB")) {
-    return originalId;
-  }
+    function lookupItem(rawCode) {
+      const code = String(rawCode || "").trim();
 
-  if (recordType && !["DIAMOND", "DIAMONDS"].includes(recordType)) {
-    return originalId;
-  }
-
-  const rawPrice = findField(data, [
-    "Price Per CT",
-    "Price Per Ct",
-    "pricePerCt",
-    "price_per_ct"
-  ]);
-
-  if (rawPrice === undefined || rawPrice === null ||
-      String(rawPrice).trim() === "") {
-    return originalId;
-  }
-
-  const price = Number(String(rawPrice).replace(/[$,\s]/g, ""));
-
-  if (!Number.isFinite(price) || price < 0) {
-    return originalId;
-  }
-
-  return originalId + "-K" + Math.round(price * 100);
-}
-
-function isPrivateField(key) {
-  const k = normalizeKey(key);
-
-  // Never display internal cost, margins, or profit calculations.
-  return [
-    "cost", "margin", "profit", "landedcost", "finalprice",
-    "priceperct", "supplierprice", "purchaseprice", "buyprice",
-    "costcad", "finalpricecad", "finalpriceusd"
-  ].some(term => k.includes(term));
-}
-
-function addField(parent, label, value, className) {
-  if (value === undefined || value === null || value === "") return;
-
-  const row = document.createElement("div");
-  row.className = "field";
-
-  const labelSpan = document.createElement("span");
-  labelSpan.textContent = label;
-
-  const valueSpan = document.createElement("span");
-  valueSpan.textContent = String(value);
-  if (className) valueSpan.className = className;
-
-  row.append(labelSpan, valueSpan);
-  parent.appendChild(row);
-}
-
-function renderItem(response) {
-  const result = document.getElementById("result");
-  result.replaceChildren();
-
-  if (!response || typeof response !== "object") {
-    setMessage("The API returned an invalid response.");
-    return;
-  }
-
-  /*
-   * Support common response formats:
-   * {found:true, item:{...}}
-   * {found:true, data:{...}}
-   * {found:true, record:{...}}
-   * {found:true, ...fields}
-   */
-  const record = response.item || response.data ||
-                 response.record || response;
-
-  if (response.found === false) {
-    setMessage("No item found.");
-    return;
-  }
-
-  if (!record || typeof record !== "object") {
-    setMessage("The item was found, but its details were not returned.");
-    return;
-  }
-
-  const id = findField(record, [
-    "Stone ID", "Jewelry ID", "ID", "Barcode", "Product ID"
-  ]) || findField(response, [
-    "Stone ID", "Jewelry ID", "ID", "Barcode", "Product ID"
-  ]);
-
-  const card = document.createElement("section");
-  card.className = "card";
-
-  const heading = document.createElement("h2");
-  heading.textContent = "Item Details";
-  card.appendChild(heading);
-
-  
-const idElement = document.createElement("p");
-idElement.className = "id";
-idElement.textContent =
-  response.displayId ||
-  displayIdWithCostKey(id, {
-    ...record,
-    recordType: record.recordType || response.recordType ||
-                response.record_type || record.type
-  });
-card.appendChild(idElement);
-
-
-  const photo = findField(record, [
-    "Photo", "Image", "Image URL", "Photo URL"
-  ]);
-
-  if (photo && /^https?:\/\//i.test(String(photo))) {
-    const img = document.createElement("img");
-    img.className = "product-photo";
-    img.src = String(photo);
-    img.alt = "Jewelry or diamond";
-    img.onerror = () => img.remove();
-    card.appendChild(img);
-  }
-
-  const hiddenFields = [
-    "photo", "image", "imageurl", "photourl", "barcodeimage",
-    "barcode", "id", "stoneid", "jewelryid", "productid"
-  ];
-
-  const preferredOrder = [
-    "Product", "Shape", "Type", "Size", "Gold", "Main Stone",
-    "Color", "Clarity", "Stone Wt Total", "Target CT", "Target MM",
-    "Wholesale price", "Retail price", "Notes", "Location", "Status"
-  ];
-
-  const keys = Object.keys(record);
-  const orderedKeys = [];
-
-  preferredOrder.forEach(name => {
-    const key = keys.find(k => normalizeKey(k) === normalizeKey(name));
-    if (key && !orderedKeys.includes(key)) orderedKeys.push(key);
-  });
-
-  keys.forEach(key => {
-    if (!orderedKeys.includes(key)) orderedKeys.push(key);
-  });
-
-  orderedKeys.forEach(key => {
-    const normalized = normalizeKey(key);
-
-    if (hiddenFields.includes(normalized) || isPrivateField(key)) return;
-    if (["recordtype", "record_type", "found", "item", "data", "record"]
-        .includes(normalized)) return;
-
-    const value = record[key];
-    if (value === undefined || value === null || value === "") return;
-
-    const isSellingPrice =
-      normalized.includes("wholesaleprice") ||
-      normalized.includes("retailprice");
-
-    addField(card, key, value, isSellingPrice ? "price" : "");
-  });
-
-  // Display linked diamonds if the API returns them as an array.
-  const linked = findField(record, [
-    "Linked Diamonds", "Diamonds", "Linked Stones", "Stones"
-  ]);
-
-  if (Array.isArray(linked) && linked.length) {
-    const linkedHeading = document.createElement("h2");
-    linkedHeading.textContent = "Linked Diamonds";
-    card.appendChild(linkedHeading);
-
-    linked.forEach((stone, index) => {
-      const section = document.createElement("div");
-      section.style.borderTop = "1px solid #444";
-      section.style.paddingTop = "10px";
-      section.style.marginTop = "10px";
-
-      const title = document.createElement("strong");
-      title.textContent = "Stone " + (index + 1);
-      section.appendChild(title);
-
-      if (stone && typeof stone === "object") {
-        Object.keys(stone).forEach(key => {
-          if (!isPrivateField(key)) {
-            addField(section, key, stone[key]);
-          }
-        });
-      } else {
-        addField(section, "Stone", stone);
+      if (!code) {
+        setStatus("Enter an item ID first.");
+        input.focus();
+        return;
       }
 
-      card.appendChild(section);
-    });
-  }
+      if (lookupInProgress) return;
 
-  result.appendChild(card);
+      lookupInProgress = true;
+      searchButton.disabled = true;
+      resultsEl.replaceChildren();
+      setStatus("Searching inventory for " + code + "...");
 
-  // Warn when Price Per CT was not returned by the API.
-  const keyShown = idElement.textContent !== String(id || "").trim();
+      const callbackName =
+        "sutariyaCallback_" + Date.now() + "_" +
+        Math.floor(Math.random() * 100000);
 
-  if (!keyShown && id && !String(id).toUpperCase().startsWith("SB")) {
-    setMessage(
-      "Item found. No ID key was added because Price Per CT was not present in the returned record."
-    );
-  } else {
-    setMessage("Item found.");
-  }
-}
+      const script = document.createElement("script");
+      const timeout = window.setTimeout(() => {
+        cleanup();
+        showError(
+          "The inventory server did not respond. Please try again."
+        );
+      }, 20000);
 
-/* Expose functions on window for callbacks and debugging. */
-window.renderItem = renderItem;
-window.displayIdWithCostKey = displayIdWithCostKey;
+      function cleanup() {
+        window.clearTimeout(timeout);
+        lookupInProgress = false;
+        searchButton.disabled = false;
+        delete window[callbackName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+      }
 
-function apiLookup(code) {
-  const searchCode = String(code || "").trim();
+      window[callbackName] = response => {
+        cleanup();
 
-  if (!searchCode) {
-    setMessage("Enter an ID to search.");
-    return;
-  }
+        if (!response || response.found !== true) {
+          showError(
+            response && response.message
+              ? response.message
+              : "No item found. Check the ID."
+          );
+          return;
+        }
 
-  const currentRequest = ++requestNumber;
-  document.getElementById("result").replaceChildren();
-  setMessage("Searching inventory...");
+        renderItem(response);
+        setStatus("Item found: " + (response.displayId || response.id || code));
+      };
 
-  const callbackName = "__sutariyaCallback_" +
-    Date.now() + "_" + Math.floor(Math.random() * 1000000);
+      script.onerror = () => {
+        cleanup();
+        showError(
+          "Could not connect to the inventory server. Check the Apps Script deployment."
+        );
+      };
 
-  const script = document.createElement("script");
-  let finished = false;
+      script.src =
+        API_URL +
+        "?api=1&code=" + encodeURIComponent(code) +
+        "&callback=" + encodeURIComponent(callbackName) +
+        "&_=" + Date.now();
 
-  const timeout = setTimeout(() => {
-    cleanup();
-    if (currentRequest === requestNumber) {
-      setMessage("Inventory request timed out. Check Apps Script deployment.");
-    }
-  }, 20000);
-
-  function cleanup() {
-    if (finished) return;
-    finished = true;
-    clearTimeout(timeout);
-    delete window[callbackName];
-    script.remove();
-  }
-
-  window[callbackName] = function(response) {
-    cleanup();
-    if (currentRequest !== requestNumber) return;
-
-    if (!response || response.found === false) {
-      setMessage("No item found for ID: " + searchCode);
-      return;
+      document.body.appendChild(script);
     }
 
-    renderItem(response);
-  };
+    function showError(message) {
+      resultsEl.replaceChildren();
 
-  script.onerror = function() {
-    cleanup();
-    if (currentRequest === requestNumber) {
-      setMessage(
-        "Inventory connection failed. Check the Apps Script URL and deployment access."
+      const box = document.createElement("div");
+      box.className = "error";
+      box.textContent = message;
+      resultsEl.appendChild(box);
+
+      setStatus("Search unsuccessful.");
+    }
+
+    function formatSellingPrice(value) {
+      if (value === null || value === undefined || value === "") {
+        return "";
+      }
+
+      const amount = Number(
+        String(value).replace(/[$,\s]/g, "")
+      );
+
+      if (!Number.isFinite(amount)) return String(value);
+
+      return amount.toLocaleString("en-CA", {
+        style: "currency",
+        currency: "CAD"
+      });
+    }
+
+    function appendText(parent, tag, className, text) {
+      const element = document.createElement(tag);
+      if (className) element.className = className;
+      element.textContent = text == null ? "" : String(text);
+      parent.appendChild(element);
+      return element;
+    }
+
+    function appendImage(parent, url) {
+      if (!url || !/^https?:\/\//i.test(String(url))) return;
+
+      const image = document.createElement("img");
+      image.className = "item-photo";
+      image.src = url;
+      image.alt = "Jewelry or diamond";
+      image.loading = "lazy";
+      image.referrerPolicy = "no-referrer";
+      image.onerror = () => image.remove();
+      parent.appendChild(image);
+    }
+
+    function normalizeField(value) {
+      return String(value || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+    }
+
+    function isPrivateField(key) {
+      const field = normalizeField(key);
+
+      const blocked = [
+        "cost", "costcad", "costusd", "margin",
+        "wholesalemargin", "retailmargin", "profit",
+        "wholesaleprofit", "retailprofit", "landedcost",
+        "finalprice", "finalpricecad", "finalpriceusd",
+        "priceperct", "wholesaleprice", "retailprice",
+        "sellingprice"
+      ];
+
+      return blocked.some(term =>
+        field === term || field.startsWith(term)
       );
     }
-  };
 
-  script.src = API_URL +
-    "?api=1&code=" + encodeURIComponent(searchCode) +
-    "&callback=" + encodeURIComponent(callbackName);
+    function renderDetails(parent, record) {
+      const details = document.createElement("div");
+      details.className = "details";
 
-  document.body.appendChild(script);
-}
+      Object.entries(record || {}).forEach(([key, value]) => {
+        if (isPrivateField(key)) return;
+        if (value === null || value === undefined || String(value).trim() === "") {
+          return;
+        }
 
-window.apiLookup = apiLookup;
+        const normalized = normalizeField(key);
 
-document.getElementById("searchButton").addEventListener("click", () => {
-  apiLookup(document.getElementById("searchInput").value);
-});
+        // Avoid exposing internal image fields as plain text.
+        if (
+          normalized === "photo" ||
+          normalized === "photourl" ||
+          normalized === "image" ||
+          normalized === "imageurl" ||
+          normalized === "barcodeimage"
+        ) return;
 
-document.getElementById("searchInput").addEventListener("keydown", event => {
-  if (event.key === "Enter") {
-    apiLookup(document.getElementById("searchInput").value);
-  }
-});
+        const detail = document.createElement("div");
+        detail.className = "detail";
 
-async function startCamera() {
-  if (!window.Html5Qrcode) {
-    setMessage("Camera scanner library failed to load. Check your internet connection.");
-    return;
-  }
+        appendText(detail, "span", "detail-label", key);
+        appendText(detail, "span", "detail-value", value);
+        details.appendChild(detail);
+      });
 
-  if (scannerRunning) return;
-
-  try {
-    html5QrCode = new Html5Qrcode("reader");
-
-    await html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 240, height: 240 } },
-      async decodedText => {
-        document.getElementById("searchInput").value = decodedText.trim();
-        await stopCamera();
-        apiLookup(decodedText.trim());
-      },
-      () => {}
-    );
-
-    scannerRunning = true;
-    setMessage("Camera started. Point it at the item's QR code.");
-  } catch (error) {
-    html5QrCode = null;
-    scannerRunning = false;
-    setMessage(
-      "Cannot start camera. Allow camera access and use HTTPS. " +
-      (error && error.message ? error.message : "")
-    );
-  }
-}
-
-async function stopCamera() {
-  if (!html5QrCode) return;
-
-  try {
-    if (scannerRunning) {
-      await html5QrCode.stop();
+      if (details.children.length) parent.appendChild(details);
     }
-    await html5QrCode.clear();
-  } catch (error) {
-    console.warn("Camera stop:", error);
-  } finally {
-    scannerRunning = false;
-    html5QrCode = null;
-  }
-}
 
-document.getElementById("cameraButton").addEventListener("click", startCamera);
-document.getElementById("stopButton").addEventListener("click", stopCamera);
-</script>
+    function renderSellingPrices(parent, pricing) {
+      const section = document.createElement("div");
+      section.className = "selling-prices";
+
+      const values = [
+        ["Wholesale Price", pricing && pricing.wholesalePrice],
+        ["Retail Price", pricing && pricing.retailPrice]
+      ];
+
+      values.forEach(([label, value]) => {
+        const box = document.createElement("div");
+        box.className = "price-box";
+
+        appendText(box, "span", "price-label", label);
+
+        if (value === null || value === undefined || value === "") {
+          appendText(box, "span", "empty-price", "Not set");
+        } else {
+          appendText(
+            box,
+            "span",
+            "price-value",
+            formatSellingPrice(value)
+          );
+        }
+
+        section.appendChild(box);
+      });
+
+      parent.appendChild(section);
+    }
+
+    function renderItem(response) {
+      const record =
+        response.record ||
+        response.item ||
+        response.data ||
+        response;
+
+      const card = document.createElement("article");
+      card.className = "item-card";
+
+      const recordType = String(
+        response.recordType || record.recordType || record.type || "ITEM"
+      ).toUpperCase();
+
+      appendText(
+        card,
+        "span",
+        "item-type",
+        recordType === "DIAMOND" ? "DIAMOND" :
+          recordType === "JEWELRY" ? "JEWELRY" : "ITEM"
+      );
+
+      const title =
+        getValue(record, ["Product", "Name", "Description", "Shape", "Type"]) ||
+        (recordType === "DIAMOND" ? "Diamond Details" : "Jewelry Details");
+
+      appendText(card, "h2", "", title);
+
+      const id = response.displayId || response.id || "";
+      appendText(card, "p", "display-id", "ID: " + id);
+
+      appendImage(
+        card,
+        response.photoUrl ||
+        getValue(record, ["Photo URL", "Photo", "Image URL", "Image"])
+      );
+
+      renderDetails(card, record);
+
+      // Prices are returned separately from the private inventory fields.
+      renderSellingPrices(
+        card,
+        response.pricing || record.pricing || {}
+      );
+
+      if (response.linkedJewelry) {
+        appendText(card, "h3", "section-title", "Linked Jewelry");
+        renderLinkedRecord(card, response.linkedJewelry);
+      }
+
+      const linkedDiamonds =
+        response.linkedDiamonds ||
+        record.linkedDiamonds ||
+        [];
+
+      if (Array.isArray(linkedDiamonds) && linkedDiamonds.length) {
+        appendText(card, "h3", "section-title", "Linked Diamonds");
+
+        linkedDiamonds.forEach(diamond => {
+          renderLinkedRecord(card, diamond);
+        });
+      }
+
+      resultsEl.replaceChildren(card);
+    }
+
+    function renderLinkedRecord(parent, response) {
+      const record =
+        response.record ||
+        response.item ||
+        response.data ||
+        response;
+
+      const box = document.createElement("div");
+      box.className = "linked-card";
+
+      const type = String(
+        response.recordType || record.recordType || "ITEM"
+      ).toUpperCase();
+
+      appendText(
+        box, "span", "item-type",
+        type === "DIAMOND" ? "DIAMOND" :
+          type === "JEWELRY" ? "JEWELRY" : "ITEM"
+      );
+
+      const title =
+        getValue(record, ["Product", "Name", "Description", "Shape", "Type"]) ||
+        type;
+
+      appendText(box, "h2", "", title);
+
+      const id = response.displayId || response.id || "";
+      appendText(box, "p", "display-id", "ID: " + id);
+
+      appendImage(
+        box,
+        response.photoUrl ||
+        getValue(record, ["Photo URL", "Photo", "Image URL", "Image"])
+      );
+
+      renderDetails(box, record);
+      renderSellingPrices(box, response.pricing || record.pricing || {});
+
+      parent.appendChild(box);
+    }
+
+    function getValue(record, candidates) {
+      if (!record) return "";
+
+      const wanted = candidates.map(normalizeField);
+
+      for (const [key, value] of Object.entries(record)) {
+        if (wanted.includes(normalizeField(key)) &&
+            value !== null && value !== undefined &&
+            String(value).trim() !== "") {
+          return String(value);
+        }
+      }
+
+      return "";
+    }
+
+    async function startCamera() {
+      if (cameraRunning) return;
+
+      if (typeof Html5Qrcode === "undefined") {
+        setStatus("Camera scanner library failed to load. Refresh the page.");
+        return;
+      }
+
+      try {
+        setStatus("Requesting camera permission...");
+
+        if (!html5QrCode) {
+          html5QrCode = new Html5Qrcode("reader");
+        }
+
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 240, height: 180 },
+            aspectRatio: 1.333
+          },
+          decodedText => {
+            const code = String(decodedText || "").trim();
+            if (!code || code === lastScannedCode || lookupInProgress) return;
+
+            lastScannedCode = code;
+            input.value = code;
+            lookupItem(code);
+          },
+          () => {}
+        );
+
+        cameraRunning = true;
+        startCameraButton.disabled = true;
+        stopCameraButton.disabled = false;
+        setStatus("Camera active. Point it at an item's QR code.");
+      } catch (error) {
+        console.error("Camera error:", error);
+        setStatus(
+          "Could not start the camera. Allow camera access and use HTTPS. " +
+          (error && error.message ? error.message : "")
+        );
+      }
+    }
+
+    async function stopCamera() {
+      if (!html5QrCode || !cameraRunning) return;
+
+      try {
+        await html5QrCode.stop();
+        await html5QrCode.clear();
+      } catch (error) {
+        console.warn("Camera stop:", error);
+      }
+
+      cameraRunning = false;
+      html5QrCode = null;
+      startCameraButton.disabled = false;
+      stopCameraButton.disabled = true;
+      lastScannedCode = "";
+      setStatus("Camera stopped. Enter an ID or start scanning again.");
+    }
+  </script>
 </body>
 </html>

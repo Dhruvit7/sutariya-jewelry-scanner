@@ -91,12 +91,26 @@ footer{text-align:center;color:#79766f;font-size:11px;padding:10px}
 
 const API_URL="https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec";
 const $=id=>document.getElementById(id);
-let scanner=null, cameraRunning=false, cameraBusy=false, searching=false, callbackNo=0, lastCode="",lastTime=0;
+let scanner=null,cameraRunning=false,cameraBusy=false,searching=false,callbackNo=0,lastCode="",lastTime=0;
 
-function cleanId(v){return String(v||"").trim().replace(/^[\s"'`]+|[\s"'`]+$/g,"").toUpperCase()}
-function setStatus(msg,type){$("status").textContent=msg;$("status").className=type||""}
-function setCamera(msg,type){$("cameraStatus").textContent=msg;$("cameraStatus").className=type||""}
-function showMessage(msg){$("result").replaceChildren();const d=document.createElement("div");d.className="empty";d.textContent=msg;$("result").appendChild(d)}
+function cleanId(v){
+  return String(v||"").trim().replace(/^[\s"'`]+|[\s"'`]+$/g,"").toUpperCase();
+}
+function setStatus(msg,type){
+  $("status").textContent=msg;
+  $("status").className=type||"";
+}
+function setCamera(msg,type){
+  $("cameraStatus").textContent=msg;
+  $("cameraStatus").className=type||"";
+}
+function showMessage(msg){
+  $("result").replaceChildren();
+  const d=document.createElement("div");
+  d.className="empty";
+  d.textContent=msg;
+  $("result").appendChild(d);
+}
 function updateButtons(){
   $("start").disabled=cameraRunning||cameraBusy;
   $("stop").disabled=!cameraRunning||cameraBusy;
@@ -107,9 +121,13 @@ function updateButtons(){
 
 async function startCamera(){
   if(cameraRunning||cameraBusy)return;
-  cameraBusy=true;updateButtons();setCamera("Requesting camera access...");
+  cameraBusy=true;
+  updateButtons();
+  setCamera("Requesting camera access...");
   try{
-    if(typeof Html5Qrcode==="undefined")throw Error("Scanner library failed to load. Refresh the page and try again.");
+    if(typeof Html5Qrcode==="undefined"){
+      throw Error("Scanner library failed to load. Refresh the page and try again.");
+    }
     if(!scanner)scanner=new Html5Qrcode("reader",{verbose:false});
     const formats=[
       Html5QrcodeSupportedFormats.QR_CODE,
@@ -121,35 +139,76 @@ async function startCamera(){
       Html5QrcodeSupportedFormats.UPC_E,
       Html5QrcodeSupportedFormats.ITF
     ];
-    await scanner.start({facingMode:"environment"},{fps:10,formatsToSupport:formats,qrbox:(w,h)=>{const s=Math.max(120,Math.min(280,Math.floor(Math.min(w,h)*.75)));return{width:s,height:s}},aspectRatio:1},code=>onDetected(code),()=>{});
-    cameraRunning=true;setCamera("Camera ready. Scan an item.","success");
+    await scanner.start(
+      {facingMode:"environment"},
+      {
+        fps:10,
+        formatsToSupport:formats,
+        qrbox:(w,h)=>{
+          const s=Math.max(120,Math.min(280,Math.floor(Math.min(w,h)*.75)));
+          return{width:s,height:s};
+        },
+        aspectRatio:1
+      },
+      code=>onDetected(code),
+      ()=>{}
+    );
+    cameraRunning=true;
+    setCamera("Camera ready. Scan an item.","success");
   }catch(e){
     setCamera("Could not start camera: "+(e.message||e),"error");
-    try{if(scanner){await scanner.clear()}}catch(_){}
-    scanner=null;cameraRunning=false;
-  }finally{cameraBusy=false;updateButtons()}
+    try{if(scanner)await scanner.clear()}catch(_){}
+    scanner=null;
+    cameraRunning=false;
+  }finally{
+    cameraBusy=false;
+    updateButtons();
+  }
 }
 async function stopCamera(){
   if(cameraBusy)return;
-  cameraBusy=true;updateButtons();
-  try{if(scanner){if(cameraRunning){try{await scanner.stop()}catch(_){}}try{await scanner.clear()}catch(_){}scanner=null}cameraRunning=false;setCamera("Camera stopped.","success")}
-  finally{cameraBusy=false;updateButtons()}
+  cameraBusy=true;
+  updateButtons();
+  try{
+    if(scanner){
+      if(cameraRunning){try{await scanner.stop()}catch(_){}}
+      try{await scanner.clear()}catch(_){}
+      scanner=null;
+    }
+    cameraRunning=false;
+    setCamera("Camera stopped.","success");
+  }finally{
+    cameraBusy=false;
+    updateButtons();
+  }
 }
 async function onDetected(raw){
   const id=cleanId(raw),now=Date.now();
   if(!id||searching||cameraBusy)return;
   if(id===lastCode&&now-lastTime<1800)return;
-  lastCode=id;lastTime=now;$("itemId").value=id;
+  lastCode=id;
+  lastTime=now;
+  $("itemId").value=id;
   await stopCamera();
   await lookup(id);
 }
 function apiLookup(id){
   return new Promise((resolve,reject)=>{
     const cb="sjdCallback"+Date.now()+"_"+(++callbackNo);
-    const script=document.createElement("script");let done=false;
+    const script=document.createElement("script");
+    let done=false;
     const timeout=setTimeout(()=>finish(Error("Apps Script timed out. Check deployment access and URL.")),15000);
-    function cleanup(){clearTimeout(timeout);script.remove();try{delete window[cb]}catch(_){window[cb]=undefined}}
-    function finish(err,data){if(done)return;done=true;cleanup();err?reject(err):resolve(data)}
+    function cleanup(){
+      clearTimeout(timeout);
+      script.remove();
+      try{delete window[cb]}catch(_){window[cb]=undefined}
+    }
+    function finish(err,data){
+      if(done)return;
+      done=true;
+      cleanup();
+      err?reject(err):resolve(data);
+    }
     window[cb]=data=>finish(null,data);
     script.onerror=()=>finish(Error("Cannot connect to Apps Script. Verify the deployment URL and access."));
     script.src=API_URL+"?api=1&code="+encodeURIComponent(id)+"&callback="+encodeURIComponent(cb)+"&_="+Date.now();
@@ -160,17 +219,32 @@ async function lookup(raw){
   const id=cleanId(raw===undefined?$("itemId").value:raw);
   if(!id){showMessage("Enter or scan an item ID first.");return}
   if(searching)return;
-  $("itemId").value=id;searching=true;updateButtons();setStatus("Searching inventory...");showMessage("Searching for "+id+"...");
+  $("itemId").value=id;
+  searching=true;
+  updateButtons();
+  setStatus("Searching inventory...");
+  showMessage("Searching for "+id+"...");
   try{
     const data=await apiLookup(id);
-    if(!data||data.found!==true){setStatus("Item not found.","error");showMessage(data&&data.message?data.message:"No item found for "+id);return}
+    if(!data||data.found!==true){
+      setStatus("Item not found.","error");
+      showMessage(data&&data.message?data.message:"No item found for "+id);
+      return;
+    }
     setStatus("Inventory connection successful.","success");
     renderItem(data);
-  }catch(e){setStatus("Inventory connection failed.","error");showMessage(e.message||String(e))}
-  finally{searching=false;updateButtons()}
+  }catch(e){
+    setStatus("Inventory connection failed.","error");
+    showMessage(e.message||String(e));
+  }finally{
+    searching=false;
+    updateButtons();
+  }
 }
 
-function norm(v){return String(v||"").toLowerCase().replace(/[^a-z0-9]/g,"")}
+function norm(v){
+  return String(v||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+}
 function privateField(key){
   const n=norm(key);
   return ["cost","margin","profit","landedcost","finalprice","priceperct","sellingprice","wholesaleprice","retailprice"]
@@ -178,24 +252,34 @@ function privateField(key){
 }
 function addDetail(parent,label,value){
   if(value===null||value===undefined||String(value).trim()==="")return;
-  const row=document.createElement("div");row.className="detail";
-  const l=document.createElement("div");l.className="label";l.textContent=label;
-  const v=document.createElement("div");v.className="value";v.textContent=String(value);
-  row.append(l,v);parent.appendChild(row);
+  const row=document.createElement("div");
+  row.className="detail";
+  const l=document.createElement("div");
+  l.className="label";
+  l.textContent=label;
+  const v=document.createElement("div");
+  v.className="value";
+  v.textContent=String(value);
+  row.append(l,v);
+  parent.appendChild(row);
 }
 function showRecord(parent,record){
   if(!record||typeof record!=="object")return;
   Object.keys(record).forEach(key=>{
     const n=norm(key),value=record[key];
-    if(privateField(key)||["photo","image","photourl","imageurl","barcodeimage"].includes(n)||
-       value===null||value===undefined||String(value).trim()===""||typeof value==="object")return;
+    if(privateField(key)||
+       ["photo","image","photourl","imageurl","barcodeimage"].includes(n)||
+       value===null||value===undefined||String(value).trim()===""||
+       typeof value==="object")return;
     addDetail(parent,key,value);
   });
 }
 function cad(value){
   if(value===null||value===undefined||String(value).trim()==="")return "";
   const n=Number(String(value).replace(/[$,\s]/g,""));
-  return Number.isFinite(n)?n.toLocaleString("en-CA",{style:"currency",currency:"CAD"}):String(value);
+  return Number.isFinite(n)
+    ?n.toLocaleString("en-CA",{style:"currency",currency:"CAD"})
+    :String(value);
 }
 function showPrices(parent,pricing){
   if(!pricing)return;
@@ -203,22 +287,176 @@ function showPrices(parent,pricing){
   const hasW=w!==null&&w!==undefined&&String(w).trim()!=="";
   const hasR=r!==null&&r!==undefined&&String(r).trim()!=="";
   if(!hasW&&!hasR)return;
-  const box=document.createElement("div");box.className="prices";
-  const h=document.createElement("h3");h.textContent="Selling Prices";box.appendChild(h);
-  if(hasW){const label=document.createElement("div");label.className="price-label";label.textContent="Wholesale selling price";const p=document.createElement("div");p.className="wholesale";p.textContent=cad(w);box.append(label,p)}
-  if(hasR){const p=document.createElement("div");p.className="retail";p.textContent="Retail reference: "+cad(r);box.appendChild(p)}
+  const box=document.createElement("div");
+  box.className="prices";
+  const h=document.createElement("h3");
+  h.textContent="Selling Prices";
+  box.appendChild(h);
+  if(hasW){
+    const label=document.createElement("div");
+    label.className="price-label";
+    label.textContent="Wholesale selling price";
+    const p=document.createElement("div");
+    p.className="wholesale";
+    p.textContent=cad(w);
+    box.append(label,p);
+  }
+  if(hasR){
+    const p=document.createElement("div");
+    p.className="retail";
+    p.textContent="Retail reference: "+cad(r);
+    box.appendChild(p);
+  }
   parent.appendChild(box);
 }
 function linkedCard(title,record,pricing){
-  const card=document.createElement("div");card.className="card";
-  const h=document.createElement("div");h.className="card-title";h.textContent=title;card.appendChild(h);
-  showRecord(card,record);showPrices(card,pricing);return card;
+  const card=document.createElement("div");
+  card.className="card";
+  const h=document.createElement("div");
+  h.className="card-title";
+  h.textContent=title;
+  card.appendChild(h);
+  showRecord(card,record);
+  showPrices(card,pricing);
+  return card;
 }
-$("form").addEventListener("submit",e=>{e.preventDefault();lookup()});
+
+/*
+ * The API must supply data.landedCostPerCarat for this key to appear.
+ * The value must be CAD per carat, not total cost or selling price.
+ * Example: 82.50 becomes K8250.
+ * This modifies only the displayed ID, not the lookup ID.
+ */
+function displayIdWithCostKey(id,data){
+  const originalId=String(id||"");
+  if(String(data.recordType||"").toUpperCase()!=="DIAMOND")return originalId;
+
+  const raw=data.landedCostPerCarat;
+  if(raw===null||raw===undefined||String(raw).trim()==="")return originalId;
+
+  const costPerCarat=Number(raw);
+  if(!Number.isFinite(costPerCarat)||costPerCarat<0)return originalId;
+
+  return originalId+"-K"+Math.round(costPerCarat*100);
+}
+
+function renderItem(data){
+  const root=$("result");
+  root.replaceChildren();
+
+  const record=data.record||{};
+  const isDiamond=String(data.recordType||"").toUpperCase()==="DIAMOND";
+
+  const h=document.createElement("h2");
+  h.textContent=isDiamond?"Diamond Details":"Jewelry Details";
+  root.appendChild(h);
+
+  // Original ID is used for lookup; the suffix changes display only.
+  const originalId=data.id||$("itemId").value;
+  const id=document.createElement("div");
+  id.className="item-id";
+  id.textContent=displayIdWithCostKey(originalId,data);
+  root.appendChild(id);
+
+  const badge=document.createElement("span");
+  badge.className="badge";
+  badge.textContent=isDiamond?"DIAMOND / STONE":"FINISHED JEWELRY";
+  root.appendChild(badge);
+
+  showRecord(root,record);
+  showPrices(root,data.pricing);
+
+  const photoUrl=data.photoUrl||"";
+  if(/^https?:\/\//i.test(photoUrl)){
+    if(/\.(png|jpe?g|gif|webp|avif)(\?.*)?$/i.test(photoUrl)){
+      const img=document.createElement("img");
+      img.className="photo";
+      img.alt="Item photo";
+      img.src=photoUrl;
+      img.onerror=()=>img.remove();
+      root.appendChild(img);
+    }else{
+      const a=document.createElement("a");
+      a.href=photoUrl;
+      a.target="_blank";
+      a.rel="noopener noreferrer";
+      a.textContent="Open product/photo link";
+      a.style.color="#e7cc91";
+      root.appendChild(a);
+    }
+  }
+
+  if(Array.isArray(data.linkedDiamonds)&&data.linkedDiamonds.length){
+    const section=document.createElement("div");
+    section.className="linked";
+    const heading=document.createElement("h3");
+    heading.textContent="Diamonds assigned to this jewelry ("+data.linkedDiamonds.length+")";
+    section.appendChild(heading);
+
+    data.linkedDiamonds.forEach(stone=>{
+      section.appendChild(
+        linkedCard("Stone ID: "+(stone.id||"Unknown"),stone.record,stone.pricing)
+      );
+    });
+    root.appendChild(section);
+  }
+
+  if(isDiamond){
+    const lj=data.linkedJewelry;
+    if(lj&&lj.found){
+      const section=document.createElement("div");
+      section.className="linked";
+      const heading=document.createElement("h3");
+      heading.textContent="Used in this jewelry";
+      section.appendChild(heading);
+
+      const note=document.createElement("div");
+      note.className="note";
+      note.textContent="This diamond is assigned to jewelry ID "+lj.id+".";
+      section.appendChild(note);
+      section.appendChild(linkedCard("Jewelry ID: "+lj.id,lj.record,null));
+
+      if(Array.isArray(lj.linkedDiamonds)&&lj.linkedDiamonds.length){
+        const subheading=document.createElement("h3");
+        subheading.style.marginTop="16px";
+        subheading.textContent="All diamonds assigned to "+lj.id;
+        section.appendChild(subheading);
+
+        lj.linkedDiamonds.forEach(stone=>{
+          section.appendChild(
+            linkedCard("Stone ID: "+(stone.id||"Unknown"),stone.record,stone.pricing)
+          );
+        });
+      }
+      root.appendChild(section);
+    }else if(data.linkedJewelryId){
+      const note=document.createElement("div");
+      note.className="note";
+      note.textContent="Assigned Jewelry ID: "+data.linkedJewelryId+
+        ". Matching jewelry record was not found.";
+      root.appendChild(note);
+    }else{
+      const note=document.createElement("div");
+      note.className="note";
+      note.textContent="No Jewelry ID is assigned. This appears to be a loose or unassigned stone.";
+      root.appendChild(note);
+    }
+  }
+}
+
+$("form").addEventListener("submit",e=>{
+  e.preventDefault();
+  lookup();
+});
 $("start").addEventListener("click",startCamera);
 $("stop").addEventListener("click",stopCamera);
-$("itemId").addEventListener("input",()=>{lastCode="";lastTime=0});
-window.addEventListener("pagehide",()=>{if(scanner&&cameraRunning)scanner.stop().catch(()=>{})});
+$("itemId").addEventListener("input",()=>{
+  lastCode="";
+  lastTime=0;
+});
+window.addEventListener("pagehide",()=>{
+  if(scanner&&cameraRunning)scanner.stop().catch(()=>{});
+});
 updateButtons();
 </script>
 </body>

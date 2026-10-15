@@ -214,50 +214,6 @@ function linkedCard(title,record,pricing){
   const h=document.createElement("div");h.className="card-title";h.textContent=title;card.appendChild(h);
   showRecord(card,record);showPrices(card,pricing);return card;
 }
-function renderItem(data){
-  const root=$("result");root.replaceChildren();
-  const record=data.record||{},isDiamond=String(data.recordType||"").toUpperCase()==="DIAMOND";
-  const h=document.createElement("h2");h.textContent=isDiamond?"Diamond Details":"Jewelry Details";root.appendChild(h);
-  const id=document.createElement("div");id.className="item-id";id.textContent=data.id||$("itemId").value;root.appendChild(id);
-  const badge=document.createElement("span");badge.className="badge";badge.textContent=isDiamond?"DIAMOND / STONE":"FINISHED JEWELRY";root.appendChild(badge);
-  showRecord(root,record);
-  showPrices(root,data.pricing);
-
-  const photoUrl=data.photoUrl||"";
-  if(/^https?:\/\//i.test(photoUrl)){
-    if(/\.(png|jpe?g|gif|webp|avif)(\?.*)?$/i.test(photoUrl)){
-      const img=document.createElement("img");img.className="photo";img.alt="Item photo";img.src=photoUrl;img.onerror=()=>img.remove();root.appendChild(img);
-    }else{
-      const a=document.createElement("a");a.href=photoUrl;a.target="_blank";a.rel="noopener noreferrer";a.textContent="Open product/photo link";a.style.color="#e7cc91";root.appendChild(a);
-    }
-  }
-
-  if(Array.isArray(data.linkedDiamonds)&&data.linkedDiamonds.length){
-    const section=document.createElement("div");section.className="linked";
-    const heading=document.createElement("h3");heading.textContent="Diamonds assigned to this jewelry ("+data.linkedDiamonds.length+")";section.appendChild(heading);
-    data.linkedDiamonds.forEach(stone=>section.appendChild(linkedCard("Stone ID: "+(stone.id||"Unknown"),stone.record,stone.pricing)));
-    root.appendChild(section);
-  }
-
-  if(isDiamond){
-    const lj=data.linkedJewelry;
-    if(lj&&lj.found){
-      const section=document.createElement("div");section.className="linked";
-      const heading=document.createElement("h3");heading.textContent="Used in this jewelry";section.appendChild(heading);
-      const note=document.createElement("div");note.className="note";note.textContent="This diamond is assigned to jewelry ID "+lj.id+".";section.appendChild(note);
-      section.appendChild(linkedCard("Jewelry ID: "+lj.id,lj.record,null));
-      if(Array.isArray(lj.linkedDiamonds)&&lj.linkedDiamonds.length){
-        const h2=document.createElement("h3");h2.style.marginTop="16px";h2.textContent="All diamonds assigned to "+lj.id;section.appendChild(h2);
-        lj.linkedDiamonds.forEach(stone=>section.appendChild(linkedCard("Stone ID: "+(stone.id||"Unknown"),stone.record,stone.pricing)));
-      }
-      root.appendChild(section);
-    }else if(data.linkedJewelryId){
-      const note=document.createElement("div");note.className="note";note.textContent="Assigned Jewelry ID: "+data.linkedJewelryId+". Matching jewelry record was not found.";root.appendChild(note);
-    }else{
-      const note=document.createElement("div");note.className="note";note.textContent="No Jewelry ID is assigned. This appears to be a loose or unassigned stone.";root.appendChild(note);
-    }
-  }
-}
 $("form").addEventListener("submit",e=>{e.preventDefault();lookup()});
 $("start").addEventListener("click",startCamera);
 $("stop").addEventListener("click",stopCamera);

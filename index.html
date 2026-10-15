@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -346,6 +347,40 @@
       overflow-wrap: anywhere;
     }
 
+    .price-panel {
+      margin-top: 18px;
+      padding: 17px;
+      border: 1px solid #5b4a2d;
+      border-radius: 12px;
+      background: #211d16;
+    }
+
+    .price-heading {
+      margin: 0 0 14px;
+      color: var(--gold-light);
+      font-size: 15px;
+    }
+
+    .wholesale-label {
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .wholesale-price {
+      color: var(--gold-light);
+      font-size: clamp(27px, 7vw, 36px);
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+
+    .retail-price {
+      margin-top: 12px;
+      color: #d0ccc3;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
     .footer {
       padding: 5px 0 0;
       color: #79766f;
@@ -359,9 +394,19 @@
       .panel { padding: 13px; }
       header h1 { font-size: 17px; }
       header p { font-size: 10px; }
-      .brand-mark { flex-basis: 43px; width: 43px; height: 43px; }
-      .gold-button { min-width: 78px; padding: 10px; }
-      .detail-row { grid-template-columns: 1fr; gap: 3px; }
+      .brand-mark {
+        flex-basis: 43px;
+        width: 43px;
+        height: 43px;
+      }
+      .gold-button {
+        min-width: 78px;
+        padding: 10px;
+      }
+      .detail-row {
+        grid-template-columns: 1fr;
+        gap: 3px;
+      }
     }
   </style>
 </head>
@@ -372,7 +417,7 @@
       <div class="brand-mark">S</div>
       <div>
         <h1>SUTARIYA JEWELS</h1>
-        <p>JEWELRY & DIAMOND INVENTORY</p>
+        <p>JEWELRY &amp; DIAMOND INVENTORY</p>
       </div>
     </header>
 
@@ -700,7 +745,6 @@
       itemInput.value = id;
 
       try {
-        // Stop the camera before looking up the scanned item.
         await stopScanner();
         await searchItem(id);
       } finally {
@@ -791,8 +835,8 @@
 
         if (thisRequest !== requestNumber) return;
 
-        console.log("Inventory API response:", data);
-
+        // Do not log the full API response because it may contain
+        // information that should remain private.
         apiStatus.textContent = "Inventory connection successful.";
         apiStatus.className = "success";
 
@@ -849,20 +893,57 @@
       parent.appendChild(row);
     }
 
+    function normalizeFieldName(key) {
+      return String(key || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+    }
+
+    function isPrivatePricingField(key) {
+      const normalized = normalizeFieldName(key);
+
+      // Hide any internal costs, margins, profits, or cost-based prices.
+      const restrictedFields = [
+        "cost",
+        "costcad",
+        "costusd",
+        "margin",
+        "wholesalemargin",
+        "retailmargin",
+        "profit",
+        "wholesaleprofit",
+        "retailprofit",
+        "landedcost",
+        "finalprice",
+        "finalpriceusd",
+        "finalpricecad",
+        "priceperct",
+        "sellingprice",
+        "wholesaleprice",
+        "retailprice"
+      ];
+
+      return restrictedFields.some(function(field) {
+        return normalized === field ||
+          normalized.startsWith(field);
+      });
+    }
+
     function displayRecordFields(parent, record) {
       if (!record || typeof record !== "object") return;
 
       Object.keys(record).forEach(function(key) {
         const value = record[key];
-        const normalized = key.trim().toLowerCase();
+        const normalized = normalizeFieldName(key);
 
         if (
+          isPrivatePricingField(key) ||
           [
             "photo",
             "image",
-            "photo url",
-            "image url",
-            "barcode image"
+            "photourl",
+            "imageurl",
+            "barcodeimage"
           ].includes(normalized) ||
           value === null ||
           value === undefined ||
@@ -888,6 +969,82 @@
       displayRecordFields(card, record || {});
 
       return card;
+    }
+
+    function formatCAD(value) {
+      if (
+        value === null ||
+        value === undefined ||
+        String(value).trim() === ""
+      ) {
+        return "";
+      }
+
+      // Accept either a number or a formatted amount such as "$238.91".
+      const cleaned = String(value).replace(/[$,\s]/g, "");
+      const amount = Number(cleaned);
+
+      if (!Number.isFinite(amount)) {
+        return String(value);
+      }
+
+      return amount.toLocaleString("en-CA", {
+        style: "currency",
+        currency: "CAD"
+      });
+    }
+
+    function displaySellingPrices(parent, pricing) {
+      if (!pricing || typeof pricing !== "object") return;
+
+      const wholesale = pricing.wholesalePrice;
+      const retail = pricing.retailPrice;
+
+      const hasWholesale =
+        wholesale !== null &&
+        wholesale !== undefined &&
+        String(wholesale).trim() !== "";
+
+      const hasRetail =
+        retail !== null &&
+        retail !== undefined &&
+        String(retail).trim() !== "";
+
+      if (!hasWholesale && !hasRetail) {
+        return;
+      }
+
+      const section = document.createElement("section");
+      section.className = "price-panel";
+
+      const heading = document.createElement("h3");
+      heading.className = "price-heading";
+      heading.textContent = "Selling Prices";
+      section.appendChild(heading);
+
+      if (hasWholesale) {
+        const label = document.createElement("div");
+        label.className = "wholesale-label";
+        label.textContent = "Wholesale selling price";
+
+        const price = document.createElement("div");
+        price.className = "wholesale-price";
+        price.textContent = formatCAD(wholesale);
+
+        section.appendChild(label);
+        section.appendChild(price);
+      }
+
+      if (hasRetail) {
+        const retailElement = document.createElement("div");
+        retailElement.className = "retail-price";
+        retailElement.textContent =
+          "Retail reference: " + formatCAD(retail);
+
+        section.appendChild(retailElement);
+      }
+
+      parent.appendChild(section);
     }
 
     function displayItem(data) {
@@ -921,15 +1078,19 @@
 
       result.appendChild(badge);
 
+      // Product specifications only. Internal pricing fields are filtered.
       displayRecordFields(result, record);
 
-      // Show an actual image only if a URL is returned.
-      // A product-page URL is offered as a link instead.
+      // Public selling prices must come from the SELLING PRICE tab.
+      // Expected API format:
+      // pricing: { wholesalePrice: 238.91, retailPrice: 292.40 }
+      displaySellingPrices(result, data.pricing);
+
       const photoUrl = data.photoUrl || "";
 
       if (/^https?:\/\//i.test(photoUrl)) {
-        const looksLikeImage = /\.(png|jpe?g|gif|webp|avif)(\?.*)?$/i
-          .test(photoUrl);
+        const looksLikeImage =
+          /\.(png|jpe?g|gif|webp|avif)(\?.*)?$/i.test(photoUrl);
 
         if (looksLikeImage) {
           const photo = document.createElement("img");
@@ -951,9 +1112,11 @@
         }
       }
 
-      // Scanning a jewelry item shows its assigned stones.
-      if (Array.isArray(data.linkedDiamonds) &&
-          data.linkedDiamonds.length) {
+      // Scanning jewelry shows its assigned stones.
+      if (
+        Array.isArray(data.linkedDiamonds) &&
+        data.linkedDiamonds.length
+      ) {
         const section = document.createElement("div");
         section.className = "linked-section";
 
@@ -1032,7 +1195,8 @@
 
         } else {
           const jewelryId = data.linkedJewelryId ||
-            (record["Jewelry ID"] || "");
+            record["Jewelry ID"] ||
+            "";
 
           if (String(jewelryId).trim()) {
             const note = document.createElement("div");
@@ -1062,13 +1226,11 @@
       }
     }
 
-    // Search button and Enter key.
     searchForm.addEventListener("submit", function(event) {
       event.preventDefault();
       searchItem();
     });
 
-    // Camera controls.
     startButton.addEventListener("click", function() {
       startScanner();
     });
@@ -1077,7 +1239,6 @@
       stopScanner();
     });
 
-    // Clear scan-repeat protection when the user edits the ID.
     itemInput.addEventListener("input", function() {
       lastScannedId = "";
       lastScannedAt = 0;

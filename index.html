@@ -9,51 +9,91 @@
   <style>
     * { box-sizing: border-box; }
     body {
-      margin: 0; padding: 20px;
+      margin: 0;
+      padding: 20px;
       font-family: Arial, sans-serif;
-      color: #f5f5f5; background: #111;
+      color: #f5f5f5;
+      background: #111;
     }
     .container { max-width: 650px; margin: auto; }
     h1 { color: #d6b46a; text-align: center; }
     .sub { text-align: center; color: #bbb; }
     input, button {
-      width: 100%; padding: 13px; margin: 7px 0;
-      border-radius: 8px; font-size: 16px;
+      width: 100%;
+      padding: 13px;
+      margin: 7px 0;
+      border-radius: 8px;
+      font-size: 16px;
     }
-    input { border: 1px solid #555; background: #222; color: white; }
+    input {
+      border: 1px solid #555;
+      background: #222;
+      color: white;
+    }
     button {
-      border: 0; background: #d6b46a; color: #111;
-      font-weight: bold; cursor: pointer;
+      border: 0;
+      background: #d6b46a;
+      color: #111;
+      font-weight: bold;
+      cursor: pointer;
     }
     button.secondary { background: #333; color: white; }
     #reader { margin-top: 12px; }
-    #message { margin: 12px 0; color: #ffd980; overflow-wrap: anywhere; }
+    #message {
+      margin: 12px 0;
+      color: #ffd980;
+      overflow-wrap: anywhere;
+    }
     .card {
-      background: #1d1d1d; border: 1px solid #444;
-      border-radius: 12px; padding: 16px; margin-top: 18px;
+      background: #1d1d1d;
+      border: 1px solid #444;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 18px;
     }
     .card h2 { color: #d6b46a; margin-top: 0; }
-    .id { font-size: 22px; font-weight: bold; color: #d6b46a; }
+    .id {
+      font-size: 22px;
+      font-weight: bold;
+      color: #d6b46a;
+      overflow-wrap: anywhere;
+    }
     .field {
-      display: flex; justify-content: space-between; gap: 16px;
-      padding: 9px 0; border-bottom: 1px solid #333;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 9px 0;
+      border-bottom: 1px solid #333;
     }
     .field span:first-child { color: #aaa; }
-    .field span:last-child { text-align: right; overflow-wrap: anywhere; }
+    .field span:last-child {
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
     .price { font-size: 19px; color: #d6b46a; font-weight: bold; }
-    img.product-photo { max-width: 100%; max-height: 300px; object-fit: contain; }
-    .hidden { display: none; }
+    img.product-photo {
+      max-width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+    }
   </style>
 </head>
 <body>
 <div class="container">
   <h1>SUTARIYA JEWELS</h1>
-  <p class="sub">Jewelry & Diamond Inventory Scanner</p>
+  <p class="sub">Jewelry &amp; Diamond Inventory Scanner</p>
 
-  <input id="searchInput" placeholder="Enter jewelry or diamond ID (e.g. SJD-O07 or SB013)">
+  <input id="searchInput"
+         placeholder="Enter ID (e.g. SJD-O07 or SB013)"
+         autocomplete="off">
   <button id="searchButton" type="button">Search ID</button>
-  <button id="cameraButton" class="secondary" type="button">Start Camera Scanner</button>
-  <button id="stopButton" class="secondary" type="button">Stop Camera</button>
+  <button id="cameraButton" class="secondary" type="button">
+    Start Camera Scanner
+  </button>
+  <button id="stopButton" class="secondary" type="button">
+    Stop Camera
+  </button>
+
   <div id="reader"></div>
   <div id="message" role="status"></div>
   <div id="result"></div>
@@ -67,74 +107,81 @@ const API_URL =
 
 let html5QrCode = null;
 let scannerRunning = false;
+let requestNumber = 0;
 
 function setMessage(message) {
   document.getElementById("message").textContent = message || "";
 }
 
-function clean(value) {
-  if (value === null || value === undefined || value === "") return "—";
-  if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
+function normalizeKey(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-function normalizedKey(key) {
-  return String(key).toLowerCase().replace(/[^a-z0-9]/g, "");
+function findField(record, possibleNames) {
+  if (!record || typeof record !== "object") return undefined;
+
+  const wanted = possibleNames.map(normalizeKey);
+  const actualKey = Object.keys(record).find(
+    key => wanted.includes(normalizeKey(key))
+  );
+
+  return actualKey === undefined ? undefined : record[actualKey];
+}
+
+/*
+ * Creates the display-only diamond ID key using Price Per CT.
+ * Example: SJD-O07 + 82.50 = SJD-O07-K8250.
+ *
+ * This does not modify the ID in Google Sheets.
+ */
+function displayIdWithCostKey(id, data) {
+  const originalId = String(id || "").trim();
+  if (!originalId) return "";
+
+  // Prefer an explicit record type, if the API supplies one.
+  const recordType = String(
+    data.recordType || data.record_type || data.type || ""
+  ).trim().toUpperCase();
+
+  // SB jewelry IDs should remain unchanged.
+  if (originalId.toUpperCase().startsWith("SB")) {
+    return originalId;
+  }
+
+  if (recordType && !["DIAMOND", "DIAMONDS"].includes(recordType)) {
+    return originalId;
+  }
+
+  const rawPrice = findField(data, [
+    "Price Per CT",
+    "Price Per Ct",
+    "pricePerCt",
+    "price_per_ct"
+  ]);
+
+  if (rawPrice === undefined || rawPrice === null ||
+      String(rawPrice).trim() === "") {
+    return originalId;
+  }
+
+  const price = Number(String(rawPrice).replace(/[$,\s]/g, ""));
+
+  if (!Number.isFinite(price) || price < 0) {
+    return originalId;
+  }
+
+  return originalId + "-K" + Math.round(price * 100);
 }
 
 function isPrivateField(key) {
-  const k = normalizedKey(key);
+  const k = normalizeKey(key);
+
+  // Never display internal cost, margins, or profit calculations.
   return [
     "cost", "margin", "profit", "landedcost", "finalprice",
     "priceperct", "supplierprice", "purchaseprice", "buyprice",
-    "wholesaleprice", "retailprice", "sellingprice", "costcad",
-    "finalpricecad", "finalpriceusd"
+    "costcad", "finalpricecad", "finalpriceusd"
   ].some(term => k.includes(term));
-}
-
-function isPriceField(key) {
-  const k = normalizedKey(key);
-  return k.includes("wholesaleprice") || k.includes("retailprice");
-}
-
-
-function displayIdWithCostKey(id, data) {
-  const originalId = String(id || "").trim();
-
-  // Only add the key for loose diamonds.
-  const type = String(data.recordType || data.type || "").toUpperCase();
-  if (type && type !== "DIAMOND" && type !== "DIAMONDS") {
-    return originalId;
-  }
-
-  // Read Price Per CT from the DIAMONDS record.
-  const raw =
-    data["Price Per CT"] ??
-    data.pricePerCt ??
-    data.pricePerCT ??
-    data.price_per_ct;
-
-  if (raw === null || raw === undefined || String(raw).trim() === "") {
-    return originalId;
-  }
-
-  // Convert $82.50 to 8250.
-  const pricePerCt = Number(String(raw).replace(/[$,\s]/g, ""));
-
-  if (!Number.isFinite(pricePerCt) || pricePerCt < 0) {
-    return originalId;
-  }
-
-  return originalId + "-K" + Math.round(pricePerCt * 100);
-}
-
-
-function findValue(data, names) {
-  const wanted = names.map(normalizedKey);
-  for (const key of Object.keys(data || {})) {
-    if (wanted.includes(normalizedKey(key))) return data[key];
-  }
-  return undefined;
 }
 
 function addField(parent, label, value, className) {
@@ -143,31 +190,51 @@ function addField(parent, label, value, className) {
   const row = document.createElement("div");
   row.className = "field";
 
-  const left = document.createElement("span");
-  left.textContent = label;
+  const labelSpan = document.createElement("span");
+  labelSpan.textContent = label;
 
-  const right = document.createElement("span");
-  right.textContent = clean(value);
-  if (className) right.className = className;
+  const valueSpan = document.createElement("span");
+  valueSpan.textContent = String(value);
+  if (className) valueSpan.className = className;
 
-  row.append(left, right);
+  row.append(labelSpan, valueSpan);
   parent.appendChild(row);
 }
 
-function renderItem(data) {
+function renderItem(response) {
   const result = document.getElementById("result");
   result.replaceChildren();
 
-  if (!data || typeof data !== "object") {
-    setMessage("No item details were returned by the API.");
+  if (!response || typeof response !== "object") {
+    setMessage("The API returned an invalid response.");
     return;
   }
 
-  const record = data.item || data.data || data.record || data;
-  if (!record || typeof record !== "object") {
-    setMessage("The API response does not contain an item record.");
+  /*
+   * Support common response formats:
+   * {found:true, item:{...}}
+   * {found:true, data:{...}}
+   * {found:true, record:{...}}
+   * {found:true, ...fields}
+   */
+  const record = response.item || response.data ||
+                 response.record || response;
+
+  if (response.found === false) {
+    setMessage("No item found.");
     return;
   }
+
+  if (!record || typeof record !== "object") {
+    setMessage("The item was found, but its details were not returned.");
+    return;
+  }
+
+  const id = findField(record, [
+    "Stone ID", "Jewelry ID", "ID", "Barcode", "Product ID"
+  ]) || findField(response, [
+    "Stone ID", "Jewelry ID", "ID", "Barcode", "Product ID"
+  ]);
 
   const card = document.createElement("section");
   card.className = "card";
@@ -176,16 +243,19 @@ function renderItem(data) {
   heading.textContent = "Item Details";
   card.appendChild(heading);
 
-  const originalId = findValue(record, [
-    "ID", "Stone ID", "Jewelry ID", "Barcode", "Product ID"
-  ]) || findValue(data, ["ID", "Stone ID", "Jewelry ID", "Barcode"]);
-
   const idElement = document.createElement("p");
   idElement.className = "id";
-  idElement.textContent = displayIdWithCostKey(originalId, record);
+  idElement.textContent = displayIdWithCostKey(id, {
+    ...record,
+    recordType: record.recordType || response.recordType ||
+                response.record_type || record.type
+  });
   card.appendChild(idElement);
 
-  const photo = findValue(record, ["Photo", "Image", "Image URL", "Photo URL"]);
+  const photo = findField(record, [
+    "Photo", "Image", "Image URL", "Photo URL"
+  ]);
+
   if (photo && /^https?:\/\//i.test(String(photo))) {
     const img = document.createElement("img");
     img.className = "product-photo";
@@ -195,43 +265,48 @@ function renderItem(data) {
     card.appendChild(img);
   }
 
+  const hiddenFields = [
+    "photo", "image", "imageurl", "photourl", "barcodeimage",
+    "barcode", "id", "stoneid", "jewelryid", "productid"
+  ];
+
   const preferredOrder = [
     "Product", "Shape", "Type", "Size", "Gold", "Main Stone",
     "Color", "Clarity", "Stone Wt Total", "Target CT", "Target MM",
-    "Jewelry ID", "Stone ID", "Notes", "Location", "Status",
-    "Wholesale price", "Retail price"
+    "Wholesale price", "Retail price", "Notes", "Location", "Status"
   ];
 
   const keys = Object.keys(record);
-  const ordered = [];
+  const orderedKeys = [];
 
   preferredOrder.forEach(name => {
-    const key = keys.find(k => normalizedKey(k) === normalizedKey(name));
-    if (key && !ordered.includes(key)) ordered.push(key);
+    const key = keys.find(k => normalizeKey(k) === normalizeKey(name));
+    if (key && !orderedKeys.includes(key)) orderedKeys.push(key);
   });
 
   keys.forEach(key => {
-    if (!ordered.includes(key)) ordered.push(key);
+    if (!orderedKeys.includes(key)) orderedKeys.push(key);
   });
 
-  ordered.forEach(key => {
-    if (isPrivateField(key)) return;
-    if (normalizedKey(key) === "photo" ||
-        normalizedKey(key) === "image" ||
-        normalizedKey(key) === "imageurl" ||
-        normalizedKey(key) === "photourl") return;
-    if (normalizedKey(key) === "id" ||
-        normalizedKey(key) === "stoneid" ||
-        normalizedKey(key) === "jewelryid" ||
-        normalizedKey(key) === "barcode") return;
+  orderedKeys.forEach(key => {
+    const normalized = normalizeKey(key);
+
+    if (hiddenFields.includes(normalized) || isPrivateField(key)) return;
+    if (["recordtype", "record_type", "found", "item", "data", "record"]
+        .includes(normalized)) return;
 
     const value = record[key];
     if (value === undefined || value === null || value === "") return;
 
-    addField(card, key, value, isPriceField(key) ? "price" : "");
+    const isSellingPrice =
+      normalized.includes("wholesaleprice") ||
+      normalized.includes("retailprice");
+
+    addField(card, key, value, isSellingPrice ? "price" : "");
   });
 
-  const linked = findValue(record, [
+  // Display linked diamonds if the API returns them as an array.
+  const linked = findField(record, [
     "Linked Diamonds", "Diamonds", "Linked Stones", "Stones"
   ]);
 
@@ -243,7 +318,8 @@ function renderItem(data) {
     linked.forEach((stone, index) => {
       const section = document.createElement("div");
       section.style.borderTop = "1px solid #444";
-      section.style.paddingTop = "8px";
+      section.style.paddingTop = "10px";
+      section.style.marginTop = "10px";
 
       const title = document.createElement("strong");
       title.textContent = "Stone " + (index + 1);
@@ -251,10 +327,12 @@ function renderItem(data) {
 
       if (stone && typeof stone === "object") {
         Object.keys(stone).forEach(key => {
-          if (!isPrivateField(key)) addField(section, key, stone[key]);
+          if (!isPrivateField(key)) {
+            addField(section, key, stone[key]);
+          }
         });
       } else {
-        section.appendChild(document.createTextNode(clean(stone)));
+        addField(section, "Stone", stone);
       }
 
       card.appendChild(section);
@@ -262,74 +340,79 @@ function renderItem(data) {
   }
 
   result.appendChild(card);
-  setMessage("Item found.");
+
+  // Warn when Price Per CT was not returned by the API.
+  const keyShown = idElement.textContent !== String(id || "").trim();
+
+  if (!keyShown && id && !String(id).toUpperCase().startsWith("SB")) {
+    setMessage(
+      "Item found. No ID key was added because Price Per CT was not present in the returned record."
+    );
+  } else {
+    setMessage("Item found.");
+  }
 }
 
-/* Make the function globally accessible for all callbacks. */
+/* Expose functions on window for callbacks and debugging. */
 window.renderItem = renderItem;
+window.displayIdWithCostKey = displayIdWithCostKey;
 
 function apiLookup(code) {
   const searchCode = String(code || "").trim();
+
   if (!searchCode) {
     setMessage("Enter an ID to search.");
     return;
   }
 
-  setMessage("Searching inventory...");
+  const currentRequest = ++requestNumber;
   document.getElementById("result").replaceChildren();
+  setMessage("Searching inventory...");
 
   const callbackName = "__sutariyaCallback_" +
-    Date.now() + "_" + Math.floor(Math.random() * 100000);
+    Date.now() + "_" + Math.floor(Math.random() * 1000000);
 
   const script = document.createElement("script");
   let finished = false;
 
-  const cleanup = () => {
+  const timeout = setTimeout(() => {
+    cleanup();
+    if (currentRequest === requestNumber) {
+      setMessage("Inventory request timed out. Check Apps Script deployment.");
+    }
+  }, 20000);
+
+  function cleanup() {
     if (finished) return;
     finished = true;
     clearTimeout(timeout);
     delete window[callbackName];
     script.remove();
-  };
-
-  const timeout = setTimeout(() => {
-    cleanup();
-    setMessage("Inventory request timed out. Check the Apps Script deployment.");
-  }, 20000);
+  }
 
   window[callbackName] = function(response) {
     cleanup();
+    if (currentRequest !== requestNumber) return;
 
     if (!response || response.found === false) {
       setMessage("No item found for ID: " + searchCode);
       return;
     }
 
-    const record = response.item || response.data || response.record;
-    if (response.found === true && !record) {
-      setMessage("The API found the ID but returned no item details. Check the API response format.");
-      return;
-    }
-
-    if (record) {
-      renderItem({
-        ...response,
-        item: record,
-        recordType: response.recordType || record.recordType || record.type
-      });
-    } else {
-      renderItem(response);
-    }
+    renderItem(response);
   };
 
   script.onerror = function() {
     cleanup();
-    setMessage("Inventory connection failed. The API script could not load.");
+    if (currentRequest === requestNumber) {
+      setMessage(
+        "Inventory connection failed. Check the Apps Script URL and deployment access."
+      );
+    }
   };
 
-  const separator = API_URL.includes("?") ? "&" : "?";
-  script.src = API_URL + separator +
-    "api=1&code=" + encodeURIComponent(searchCode) +
+  script.src = API_URL +
+    "?api=1&code=" + encodeURIComponent(searchCode) +
     "&callback=" + encodeURIComponent(callbackName);
 
   document.body.appendChild(script);
@@ -337,13 +420,14 @@ function apiLookup(code) {
 
 window.apiLookup = apiLookup;
 
-function handleSearch() {
+document.getElementById("searchButton").addEventListener("click", () => {
   apiLookup(document.getElementById("searchInput").value);
-}
+});
 
-document.getElementById("searchButton").addEventListener("click", handleSearch);
 document.getElementById("searchInput").addEventListener("keydown", event => {
-  if (event.key === "Enter") handleSearch();
+  if (event.key === "Enter") {
+    apiLookup(document.getElementById("searchInput").value);
+  }
 });
 
 async function startCamera() {
@@ -356,29 +440,37 @@ async function startCamera() {
 
   try {
     html5QrCode = new Html5Qrcode("reader");
+
     await html5QrCode.start(
       { facingMode: "environment" },
       { fps: 10, qrbox: { width: 240, height: 240 } },
-      decodedText => {
+      async decodedText => {
         document.getElementById("searchInput").value = decodedText.trim();
-        stopCamera();
+        await stopCamera();
         apiLookup(decodedText.trim());
       },
       () => {}
     );
+
     scannerRunning = true;
-    setMessage("Camera scanner started. Point it at the item's QR code.");
+    setMessage("Camera started. Point it at the item's QR code.");
   } catch (error) {
-    setMessage("Cannot start camera. Allow camera access and use HTTPS. " +
-      (error && error.message ? error.message : ""));
+    html5QrCode = null;
+    scannerRunning = false;
+    setMessage(
+      "Cannot start camera. Allow camera access and use HTTPS. " +
+      (error && error.message ? error.message : "")
+    );
   }
 }
 
 async function stopCamera() {
-  if (!html5QrCode || !scannerRunning) return;
+  if (!html5QrCode) return;
 
   try {
-    await html5QrCode.stop();
+    if (scannerRunning) {
+      await html5QrCode.stop();
+    }
     await html5QrCode.clear();
   } catch (error) {
     console.warn("Camera stop:", error);

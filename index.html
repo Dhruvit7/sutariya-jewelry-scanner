@@ -2,1255 +2,268 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#111111">
-  <title>Sutariya Jewels | Inventory</title>
-
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
-  <style>
-    :root {
-      --gold: #c5a05a;
-      --gold-light: #e7cc91;
-      --ink: #141414;
-      --panel: #202020;
-      --panel-light: #292929;
-      --text: #f7f5f0;
-      --muted: #b8b5ad;
-      --line: #393939;
-      --success: #81d5a8;
-      --danger: #ff9b91;
-      --page: #101010;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      padding: 18px 14px 36px;
-      background: var(--page);
-      color: var(--text);
-      font-family: Arial, Helvetica, sans-serif;
-    }
-
-    button, input { font: inherit; }
-
-    button {
-      min-height: 47px;
-      padding: 12px 15px;
-      border: 0;
-      border-radius: 10px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: opacity .15s ease, background .15s ease;
-    }
-
-    button:disabled {
-      opacity: .48;
-      cursor: not-allowed;
-    }
-
-    button:focus-visible, input:focus-visible {
-      outline: 2px solid var(--gold-light);
-      outline-offset: 2px;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 680px;
-      margin: 0 auto;
-    }
-
-    header {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-      padding: 8px 2px 23px;
-    }
-
-    .brand-mark {
-      display: grid;
-      place-items: center;
-      flex: 0 0 48px;
-      width: 48px;
-      height: 48px;
-      border-radius: 13px;
-      background: var(--gold);
-      color: var(--ink);
-      font-size: 25px;
-      font-weight: 800;
-    }
-
-    header h1 {
-      margin: 0 0 5px;
-      color: var(--gold-light);
-      font-size: 20px;
-      letter-spacing: 1.1px;
-    }
-
-    header p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 11px;
-      letter-spacing: 1.2px;
-    }
-
-    .panel {
-      margin-bottom: 15px;
-      padding: 17px;
-      border: 1px solid var(--line);
-      border-radius: 15px;
-      background: var(--panel);
-    }
-
-    .section-heading {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      margin: 0 0 15px;
-      font-size: 16px;
-    }
-
-    .section-icon {
-      color: var(--gold-light);
-      font-size: 19px;
-    }
-
-    .subtext {
-      margin: -6px 0 13px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    #reader {
-      width: 100%;
-      min-height: 70px;
-      overflow: hidden;
-      border: 1px solid #414141;
-      border-radius: 12px;
-      background: #090909;
-    }
-
-    #reader video {
-      width: 100% !important;
-      max-height: 390px;
-      object-fit: cover;
-      border-radius: 10px;
-    }
-
-    #reader img { max-width: 100%; }
-
-    #reader__dashboard,
-    #reader__status_span {
-      color: var(--text) !important;
-    }
-
-    #reader button {
-      min-height: 38px;
-      margin: 4px;
-      color: var(--ink);
-      background: var(--gold-light);
-    }
-
-    #reader select {
-      max-width: 100%;
-      padding: 8px;
-      border-radius: 7px;
-    }
-
-    .button-row, .search-row {
-      display: flex;
-      gap: 9px;
-      margin-top: 12px;
-    }
-
-    .button-row button { flex: 1; }
-
-    .primary {
-      color: #151515;
-      background: var(--gold);
-    }
-
-    .primary:hover:not(:disabled) {
-      background: var(--gold-light);
-    }
-
-    .secondary {
-      color: var(--text);
-      background: #393939;
-    }
-
-    .search-row input { flex: 1; }
-
-    input {
-      width: 100%;
-      min-width: 0;
-      padding: 14px 12px;
-      border: 1px solid #4a4a4a;
-      border-radius: 10px;
-      background: #111;
-      color: var(--text);
-      font-size: 16px;
-      text-transform: uppercase;
-    }
-
-    input::placeholder { color: #88857e; }
-
-    .gold-button {
-      min-width: 95px;
-      color: #151515;
-      background: var(--gold);
-    }
-
-    #cameraStatus, #apiStatus {
-      margin: 12px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
-      overflow-wrap: anywhere;
-    }
-
-    .success { color: var(--success) !important; }
-    .error { color: var(--danger) !important; }
-
-    .tip {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      margin-top: 12px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    .tip-symbol { color: var(--gold-light); }
-
-    .empty {
-      padding: 15px 4px;
-      color: var(--muted);
-      text-align: center;
-      font-size: 14px;
-      line-height: 1.6;
-      overflow-wrap: anywhere;
-    }
-
-    .item-id {
-      margin-top: 5px;
-      color: var(--gold-light);
-      font-size: 27px;
-      font-weight: 800;
-      overflow-wrap: anywhere;
-    }
-
-    .type-badge {
-      display: inline-block;
-      margin: 9px 0 13px;
-      padding: 6px 10px;
-      border: 1px solid #5b4a2d;
-      border-radius: 20px;
-      background: #302719;
-      color: var(--gold-light);
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: .7px;
-    }
-
-    .detail-row {
-      display: grid;
-      grid-template-columns: minmax(105px, 38%) minmax(0, 1fr);
-      gap: 12px;
-      padding: 11px 0;
-      border-bottom: 1px solid var(--line);
-      overflow-wrap: anywhere;
-    }
-
-    .detail-row:last-child { border-bottom: 0; }
-
-    .detail-label {
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    .detail-value {
-      color: var(--text);
-      font-size: 14px;
-      font-weight: 600;
-      line-height: 1.5;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
-
-    .linked-section {
-      margin-top: 20px;
-      padding-top: 16px;
-      border-top: 1px solid #51432d;
-    }
-
-    .linked-heading {
-      margin: 0 0 10px;
-      color: var(--gold-light);
-      font-size: 15px;
-    }
-
-    .linked-card {
-      margin-top: 9px;
-      padding: 13px;
-      border: 1px solid #414141;
-      border-radius: 11px;
-      background: var(--panel-light);
-      overflow-wrap: anywhere;
-    }
-
-    .linked-card-title {
-      margin: 0 0 8px;
-      color: var(--gold-light);
-      font-size: 14px;
-      font-weight: 700;
-    }
-
-    .linked-line {
-      margin-top: 6px;
-      color: #dedbd4;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-
-    .relation-note {
-      margin-top: 11px;
-      padding: 11px;
-      border-left: 3px solid var(--gold);
-      border-radius: 4px;
-      background: #29251d;
-      color: #eee0c3;
-      font-size: 13px;
-      line-height: 1.6;
-      overflow-wrap: anywhere;
-    }
-
-    .item-photo {
-      display: block;
-      max-width: 100%;
-      max-height: 280px;
-      object-fit: contain;
-      margin: 14px auto 0;
-      border-radius: 8px;
-    }
-
-    .external-photo-link {
-      display: inline-block;
-      margin-top: 12px;
-      color: var(--gold-light);
-      font-size: 13px;
-      overflow-wrap: anywhere;
-    }
-
-    .price-panel {
-      margin-top: 18px;
-      padding: 17px;
-      border: 1px solid #5b4a2d;
-      border-radius: 12px;
-      background: #211d16;
-    }
-
-    .price-heading {
-      margin: 0 0 14px;
-      color: var(--gold-light);
-      font-size: 15px;
-    }
-
-    .wholesale-label {
-      margin-bottom: 4px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .wholesale-price {
-      color: var(--gold-light);
-      font-size: clamp(27px, 7vw, 36px);
-      font-weight: 800;
-      overflow-wrap: anywhere;
-    }
-
-    .retail-price {
-      margin-top: 12px;
-      color: #d0ccc3;
-      font-size: 14px;
-      overflow-wrap: anywhere;
-    }
-
-    .footer {
-      padding: 5px 0 0;
-      color: #79766f;
-      text-align: center;
-      font-size: 11px;
-      letter-spacing: .6px;
-    }
-
-    @media (max-width: 420px) {
-      body { padding: 12px 10px 26px; }
-      .panel { padding: 13px; }
-      header h1 { font-size: 17px; }
-      header p { font-size: 10px; }
-      .brand-mark {
-        flex-basis: 43px;
-        width: 43px;
-        height: 43px;
-      }
-      .gold-button {
-        min-width: 78px;
-        padding: 10px;
-      }
-      .detail-row {
-        grid-template-columns: 1fr;
-        gap: 3px;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<title>Sutariya Jewels | Inventory</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root{--gold:#c5a05a;--light:#e7cc91;--bg:#101010;--panel:#202020;--text:#f7f5f0;--muted:#b8b5ad;--line:#393939;--green:#81d5a8;--red:#ff9b91}
+*{box-sizing:border-box}
+body{margin:0;padding:16px 12px 32px;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+main{max-width:680px;margin:auto}
+header{display:flex;align-items:center;gap:12px;padding:8px 2px 20px}
+.logo{display:grid;place-items:center;width:46px;height:46px;border-radius:12px;background:var(--gold);color:#141414;font-size:24px;font-weight:800}
+h1{margin:0;color:var(--light);font-size:20px;letter-spacing:1px}
+header p{margin:5px 0 0;color:var(--muted);font-size:11px;letter-spacing:1px}
+.panel{padding:16px;margin-bottom:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+h2{font-size:16px;margin:0 0 12px}
+.sub{color:var(--muted);font-size:13px;line-height:1.5}
+#reader{min-height:50px;overflow:hidden;border:1px solid #414141;border-radius:10px;background:#080808}
+#reader video{width:100%!important;max-height:380px;object-fit:cover}
+#reader button{background:var(--light);color:#111}
+.buttons,.search{display:flex;gap:9px;margin-top:12px}
+button{border:0;border-radius:9px;min-height:45px;padding:11px 14px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.5}
+.buttons button{flex:1}
+.primary{background:var(--gold);color:#111}
+.secondary{background:#393939;color:white}
+input{flex:1;width:100%;min-width:0;padding:13px;border:1px solid #4a4a4a;border-radius:9px;background:#111;color:white;font-size:16px;text-transform:uppercase}
+#status,#cameraStatus{color:var(--muted);font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.error{color:var(--red)!important}.success{color:var(--green)!important}
+.empty{text-align:center;color:var(--muted);padding:20px 4px;line-height:1.6;overflow-wrap:anywhere}
+.item-id{font-size:27px;font-weight:800;color:var(--light);overflow-wrap:anywhere}
+.badge{display:inline-block;margin:9px 0 12px;padding:6px 10px;border:1px solid #5b4a2d;border-radius:20px;background:#302719;color:var(--light);font-size:11px;font-weight:bold}
+.detail{display:grid;grid-template-columns:minmax(105px,38%) minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.label{color:var(--muted);font-size:12px;line-height:1.5}
+.value{font-size:14px;font-weight:600;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.prices{margin-top:18px;padding:16px;border:1px solid #5b4a2d;border-radius:12px;background:#211d16}
+.prices h3,.linked h3{margin:0 0 12px;color:var(--light);font-size:15px}
+.price-label{font-size:12px;color:var(--muted)}
+.wholesale{font-size:clamp(28px,7vw,36px);font-weight:800;color:var(--light);margin-top:4px;overflow-wrap:anywhere}
+.retail{font-size:14px;color:#d0ccc3;margin-top:12px;overflow-wrap:anywhere}
+.linked{margin-top:20px;padding-top:16px;border-top:1px solid #51432d}
+.card{padding:12px;margin-top:9px;border:1px solid #414141;border-radius:10px;background:#292929}
+.card-title{color:var(--light);font-size:14px;font-weight:bold;margin-bottom:7px}
+.note{padding:10px;margin-top:10px;background:#29251d;border-left:3px solid var(--gold);font-size:13px;line-height:1.5}
+.photo{display:block;max-width:100%;max-height:280px;margin:14px auto;object-fit:contain}
+footer{text-align:center;color:#79766f;font-size:11px;padding:10px}
+@media(max-width:420px){body{padding:12px 9px 24px}.panel{padding:13px}h1{font-size:17px}.detail{grid-template-columns:1fr;gap:3px}}
+</style>
 </head>
-
 <body>
-  <main class="container">
-    <header>
-      <div class="brand-mark">S</div>
-      <div>
-        <h1>SUTARIYA JEWELS</h1>
-        <p>JEWELRY &amp; DIAMOND INVENTORY</p>
-      </div>
-    </header>
+<main>
+<header>
+  <div class="logo">S</div>
+  <div><h1>SUTARIYA JEWELS</h1><p>JEWELRY &amp; DIAMOND INVENTORY</p></div>
+</header>
 
-    <section class="panel">
-      <h2 class="section-heading">
-        <span class="section-icon">▦</span>
-        Scan an item
-      </h2>
-      <p class="subtext">Scan a jewelry tag or diamond QR code/barcode.</p>
+<section class="panel">
+  <h2>▦ Scan an item</h2>
+  <p class="sub">Scan a jewelry tag or diamond QR code/barcode.</p>
+  <div id="reader"></div>
+  <div class="buttons">
+    <button id="start" class="primary" type="button">Start Camera</button>
+    <button id="stop" class="secondary" type="button" disabled>Stop Camera</button>
+  </div>
+  <p id="cameraStatus" aria-live="polite">Camera is stopped.</p>
+</section>
 
-      <div id="reader"></div>
+<section class="panel">
+  <h2>⌕ Find an item</h2>
+  <form id="form">
+    <div class="search">
+      <input id="itemId" placeholder="SB001 or SJD-O07" autocomplete="off" autocapitalize="characters">
+      <button id="search" class="primary" type="submit">Search</button>
+    </div>
+  </form>
+  <p id="status" aria-live="polite">Ready to search inventory.</p>
+</section>
 
-      <div class="button-row">
-        <button id="startButton" class="primary" type="button">
-          Start Camera
-        </button>
-        <button id="stopButton" class="secondary" type="button" disabled>
-          Stop Camera
-        </button>
-      </div>
+<section class="panel">
+  <div id="result" aria-live="polite"><div class="empty">Scan a tag or enter an item ID to view details and prices.</div></div>
+</section>
+<footer>SUTARIYA JEWELS · INVENTORY SYSTEM</footer>
+</main>
 
-      <p id="cameraStatus" aria-live="polite">
-        Camera is stopped. Start it when you are ready to scan.
-      </p>
+<script>
+"use strict";
 
-      <div class="tip">
-        <span class="tip-symbol">◆</span>
-        <span>The camera stops after each successful scan. Start it again for the next item.</span>
-      </div>
-    </section>
+const API_URL="https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec";
+const $=id=>document.getElementById(id);
+let scanner=null, cameraRunning=false, cameraBusy=false, searching=false, callbackNo=0, lastCode="",lastTime=0;
 
-    <section class="panel">
-      <h2 class="section-heading">
-        <span class="section-icon">⌕</span>
-        Find an item
-      </h2>
+function cleanId(v){return String(v||"").trim().replace(/^[\s"'`]+|[\s"'`]+$/g,"").toUpperCase()}
+function setStatus(msg,type){$("status").textContent=msg;$("status").className=type||""}
+function setCamera(msg,type){$("cameraStatus").textContent=msg;$("cameraStatus").className=type||""}
+function showMessage(msg){$("result").replaceChildren();const d=document.createElement("div");d.className="empty";d.textContent=msg;$("result").appendChild(d)}
+function updateButtons(){
+  $("start").disabled=cameraRunning||cameraBusy;
+  $("stop").disabled=!cameraRunning||cameraBusy;
+  $("search").disabled=searching;
+  $("start").textContent=cameraBusy?"Please wait":cameraRunning?"Camera Running":"Start Camera";
+  $("search").textContent=searching?"Searching...":"Search";
+}
 
-      <form id="searchForm">
-        <div class="search-row">
-          <input
-            id="itemInput"
-            type="text"
-            placeholder="SB001 or SJD-O01"
-            autocomplete="off"
-            autocapitalize="characters"
-            enterkeyhint="search"
-          >
-          <button id="searchButton" class="gold-button" type="submit">
-            Search
-          </button>
-        </div>
-      </form>
+async function startCamera(){
+  if(cameraRunning||cameraBusy)return;
+  cameraBusy=true;updateButtons();setCamera("Requesting camera access...");
+  try{
+    if(typeof Html5Qrcode==="undefined")throw Error("Scanner library failed to load. Refresh the page and try again.");
+    if(!scanner)scanner=new Html5Qrcode("reader",{verbose:false});
+    const formats=[
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.ITF
+    ];
+    await scanner.start({facingMode:"environment"},{fps:10,formatsToSupport:formats,qrbox:(w,h)=>{const s=Math.max(120,Math.min(280,Math.floor(Math.min(w,h)*.75)));return{width:s,height:s}},aspectRatio:1},code=>onDetected(code),()=>{});
+    cameraRunning=true;setCamera("Camera ready. Scan an item.","success");
+  }catch(e){
+    setCamera("Could not start camera: "+(e.message||e),"error");
+    try{if(scanner){await scanner.clear()}}catch(_){}
+    scanner=null;cameraRunning=false;
+  }finally{cameraBusy=false;updateButtons()}
+}
+async function stopCamera(){
+  if(cameraBusy)return;
+  cameraBusy=true;updateButtons();
+  try{if(scanner){if(cameraRunning){try{await scanner.stop()}catch(_){}}try{await scanner.clear()}catch(_){}scanner=null}cameraRunning=false;setCamera("Camera stopped.","success")}
+  finally{cameraBusy=false;updateButtons()}
+}
+async function onDetected(raw){
+  const id=cleanId(raw),now=Date.now();
+  if(!id||searching||cameraBusy)return;
+  if(id===lastCode&&now-lastTime<1800)return;
+  lastCode=id;lastTime=now;$("itemId").value=id;
+  await stopCamera();
+  await lookup(id);
+}
+function apiLookup(id){
+  return new Promise((resolve,reject)=>{
+    const cb="sjdCallback"+Date.now()+"_"+(++callbackNo);
+    const script=document.createElement("script");let done=false;
+    const timeout=setTimeout(()=>finish(Error("Apps Script timed out. Check deployment access and URL.")),15000);
+    function cleanup(){clearTimeout(timeout);script.remove();try{delete window[cb]}catch(_){window[cb]=undefined}}
+    function finish(err,data){if(done)return;done=true;cleanup();err?reject(err):resolve(data)}
+    window[cb]=data=>finish(null,data);
+    script.onerror=()=>finish(Error("Cannot connect to Apps Script. Verify the deployment URL and access."));
+    script.src=API_URL+"?api=1&code="+encodeURIComponent(id)+"&callback="+encodeURIComponent(cb)+"&_="+Date.now();
+    document.head.appendChild(script);
+  });
+}
+async function lookup(raw){
+  const id=cleanId(raw===undefined?$("itemId").value:raw);
+  if(!id){showMessage("Enter or scan an item ID first.");return}
+  if(searching)return;
+  $("itemId").value=id;searching=true;updateButtons();setStatus("Searching inventory...");showMessage("Searching for "+id+"...");
+  try{
+    const data=await apiLookup(id);
+    if(!data||data.found!==true){setStatus("Item not found.","error");showMessage(data&&data.message?data.message:"No item found for "+id);return}
+    setStatus("Inventory connection successful.","success");
+    renderItem(data);
+  }catch(e){setStatus("Inventory connection failed.","error");showMessage(e.message||String(e))}
+  finally{searching=false;updateButtons()}
+}
 
-      <p id="apiStatus" aria-live="polite">
-        Ready to search inventory.
-      </p>
-    </section>
+function norm(v){return String(v||"").toLowerCase().replace(/[^a-z0-9]/g,"")}
+function privateField(key){
+  const n=norm(key);
+  return ["cost","margin","profit","landedcost","finalprice","priceperct","sellingprice","wholesaleprice","retailprice"]
+    .some(x=>n===x||n.startsWith(x));
+}
+function addDetail(parent,label,value){
+  if(value===null||value===undefined||String(value).trim()==="")return;
+  const row=document.createElement("div");row.className="detail";
+  const l=document.createElement("div");l.className="label";l.textContent=label;
+  const v=document.createElement("div");v.className="value";v.textContent=String(value);
+  row.append(l,v);parent.appendChild(row);
+}
+function showRecord(parent,record){
+  if(!record||typeof record!=="object")return;
+  Object.keys(record).forEach(key=>{
+    const n=norm(key),value=record[key];
+    if(privateField(key)||["photo","image","photourl","imageurl","barcodeimage"].includes(n)||
+       value===null||value===undefined||String(value).trim()===""||typeof value==="object")return;
+    addDetail(parent,key,value);
+  });
+}
+function cad(value){
+  if(value===null||value===undefined||String(value).trim()==="")return "";
+  const n=Number(String(value).replace(/[$,\s]/g,""));
+  return Number.isFinite(n)?n.toLocaleString("en-CA",{style:"currency",currency:"CAD"}):String(value);
+}
+function showPrices(parent,pricing){
+  if(!pricing)return;
+  const w=pricing.wholesalePrice,r=pricing.retailPrice;
+  const hasW=w!==null&&w!==undefined&&String(w).trim()!=="";
+  const hasR=r!==null&&r!==undefined&&String(r).trim()!=="";
+  if(!hasW&&!hasR)return;
+  const box=document.createElement("div");box.className="prices";
+  const h=document.createElement("h3");h.textContent="Selling Prices";box.appendChild(h);
+  if(hasW){const label=document.createElement("div");label.className="price-label";label.textContent="Wholesale selling price";const p=document.createElement("div");p.className="wholesale";p.textContent=cad(w);box.append(label,p)}
+  if(hasR){const p=document.createElement("div");p.className="retail";p.textContent="Retail reference: "+cad(r);box.appendChild(p)}
+  parent.appendChild(box);
+}
+function linkedCard(title,record,pricing){
+  const card=document.createElement("div");card.className="card";
+  const h=document.createElement("div");h.className="card-title";h.textContent=title;card.appendChild(h);
+  showRecord(card,record);showPrices(card,pricing);return card;
+}
+function renderItem(data){
+  const root=$("result");root.replaceChildren();
+  const record=data.record||{},isDiamond=String(data.recordType||"").toUpperCase()==="DIAMOND";
+  const h=document.createElement("h2");h.textContent=isDiamond?"Diamond Details":"Jewelry Details";root.appendChild(h);
+  const id=document.createElement("div");id.className="item-id";id.textContent=data.id||$("itemId").value;root.appendChild(id);
+  const badge=document.createElement("span");badge.className="badge";badge.textContent=isDiamond?"DIAMOND / STONE":"FINISHED JEWELRY";root.appendChild(badge);
+  showRecord(root,record);
+  showPrices(root,data.pricing);
 
-    <section class="panel">
-      <div id="result" aria-live="polite">
-        <div class="empty">
-          Scan a tag or enter an item ID to view its inventory details.
-        </div>
-      </div>
-    </section>
-
-    <div class="footer">SUTARIYA JEWELS · INVENTORY SYSTEM</div>
-  </main>
-
-  <script>
-    "use strict";
-
-    const API_URL =
-      "https://script.google.com/macros/s/AKfycbxv4btjp3Uc5rDB1reFRN2Ykd0lYviCw_cEtkGj6Uf44Cos9oWtKwo7wVVWBoRKys1X/exec";
-
-    let scanner = null;
-    let cameraRunning = false;
-    let cameraStarting = false;
-    let cameraStopping = false;
-    let scanProcessing = false;
-    let startPromise = null;
-    let stopPromise = null;
-    let searchInProgress = false;
-    let requestNumber = 0;
-    let callbackNumber = 0;
-    let lastScannedId = "";
-    let lastScannedAt = 0;
-
-    const reader = document.getElementById("reader");
-    const startButton = document.getElementById("startButton");
-    const stopButton = document.getElementById("stopButton");
-    const searchButton = document.getElementById("searchButton");
-    const searchForm = document.getElementById("searchForm");
-    const itemInput = document.getElementById("itemInput");
-    const cameraStatus = document.getElementById("cameraStatus");
-    const apiStatus = document.getElementById("apiStatus");
-    const result = document.getElementById("result");
-
-    function cleanId(value) {
-      return String(value == null ? "" : value)
-        .replace(/^[\s"'`]+|[\s"'`]+$/g, "")
-        .trim()
-        .toUpperCase();
+  const photoUrl=data.photoUrl||"";
+  if(/^https?:\/\//i.test(photoUrl)){
+    if(/\.(png|jpe?g|gif|webp|avif)(\?.*)?$/i.test(photoUrl)){
+      const img=document.createElement("img");img.className="photo";img.alt="Item photo";img.src=photoUrl;img.onerror=()=>img.remove();root.appendChild(img);
+    }else{
+      const a=document.createElement("a");a.href=photoUrl;a.target="_blank";a.rel="noopener noreferrer";a.textContent="Open product/photo link";a.style.color="#e7cc91";root.appendChild(a);
     }
+  }
 
-    function errorText(error) {
-      return error && error.message
-        ? error.message
-        : String(error || "Unknown error");
-    }
+  if(Array.isArray(data.linkedDiamonds)&&data.linkedDiamonds.length){
+    const section=document.createElement("div");section.className="linked";
+    const heading=document.createElement("h3");heading.textContent="Diamonds assigned to this jewelry ("+data.linkedDiamonds.length+")";section.appendChild(heading);
+    data.linkedDiamonds.forEach(stone=>section.appendChild(linkedCard("Stone ID: "+(stone.id||"Unknown"),stone.record,stone.pricing)));
+    root.appendChild(section);
+  }
 
-    function setCameraStatus(message, type) {
-      cameraStatus.textContent = message;
-      cameraStatus.className = type || "";
-    }
-
-    function updateButtons() {
-      startButton.disabled =
-        cameraRunning || cameraStarting || cameraStopping;
-
-      stopButton.disabled =
-        (!cameraRunning && !cameraStarting) || cameraStopping;
-
-      searchButton.disabled = searchInProgress;
-
-      startButton.textContent = cameraStarting
-        ? "Starting..."
-        : cameraRunning
-          ? "Camera Running"
-          : cameraStopping
-            ? "Stopping..."
-            : "Start Camera";
-
-      searchButton.textContent = searchInProgress
-        ? "Searching..."
-        : "Search";
-    }
-
-    function showMessage(message) {
-      result.replaceChildren();
-
-      const element = document.createElement("div");
-      element.className = "empty";
-      element.textContent = message;
-
-      result.appendChild(element);
-    }
-
-    function delay(ms) {
-      return new Promise(function(resolve) {
-        setTimeout(resolve, ms);
-      });
-    }
-
-    async function startScanner() {
-      if (cameraRunning || cameraStarting || cameraStopping) return;
-
-      if (stopPromise) {
-        try {
-          await stopPromise;
-        } catch (_) {}
+  if(isDiamond){
+    const lj=data.linkedJewelry;
+    if(lj&&lj.found){
+      const section=document.createElement("div");section.className="linked";
+      const heading=document.createElement("h3");heading.textContent="Used in this jewelry";section.appendChild(heading);
+      const note=document.createElement("div");note.className="note";note.textContent="This diamond is assigned to jewelry ID "+lj.id+".";section.appendChild(note);
+      section.appendChild(linkedCard("Jewelry ID: "+lj.id,lj.record,null));
+      if(Array.isArray(lj.linkedDiamonds)&&lj.linkedDiamonds.length){
+        const h2=document.createElement("h3");h2.style.marginTop="16px";h2.textContent="All diamonds assigned to "+lj.id;section.appendChild(h2);
+        lj.linkedDiamonds.forEach(stone=>section.appendChild(linkedCard("Stone ID: "+(stone.id||"Unknown"),stone.record,stone.pricing)));
       }
-
-      cameraStarting = true;
-      updateButtons();
-      setCameraStatus("Requesting camera access...");
-
-      startPromise = (async function() {
-        try {
-          if (typeof Html5Qrcode === "undefined") {
-            throw new Error(
-              "The camera library did not load. Refresh the page and check your internet connection."
-            );
-          }
-
-          if (!scanner) {
-            scanner = new Html5Qrcode("reader", { verbose: false });
-          }
-
-          const formats = [
-            Html5QrcodeSupportedFormats.QR_CODE,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.ITF
-          ];
-
-          await scanner.start(
-            { facingMode: "environment" },
-            {
-              fps: 10,
-              formatsToSupport: formats,
-              qrbox: function(width, height) {
-                const size = Math.max(
-                  120,
-                  Math.min(
-                    280,
-                    Math.floor(Math.min(width, height) * 0.75)
-                  )
-                );
-
-                return { width: size, height: size };
-              },
-              aspectRatio: 1
-            },
-            function(decodedText) {
-              onCodeDetected(decodedText);
-            },
-            function() {
-              // No code in this frame; keep scanning.
-            }
-          );
-
-          cameraRunning = true;
-          setCameraStatus(
-            "Camera ready. Scan one item; the camera will then stop.",
-            "success"
-          );
-
-        } catch (error) {
-          console.error("Camera start error:", error);
-          cameraRunning = false;
-          setCameraStatus(
-            "Could not start camera: " + errorText(error),
-            "error"
-          );
-          await disposeScanner();
-        } finally {
-          cameraStarting = false;
-          startPromise = null;
-          updateButtons();
-        }
-      })();
-
-      return startPromise;
+      root.appendChild(section);
+    }else if(data.linkedJewelryId){
+      const note=document.createElement("div");note.className="note";note.textContent="Assigned Jewelry ID: "+data.linkedJewelryId+". Matching jewelry record was not found.";root.appendChild(note);
+    }else{
+      const note=document.createElement("div");note.className="note";note.textContent="No Jewelry ID is assigned. This appears to be a loose or unassigned stone.";root.appendChild(note);
     }
-
-    async function disposeScanner() {
-      const oldScanner = scanner;
-      scanner = null;
-      cameraRunning = false;
-
-      if (!oldScanner) return;
-
-      try {
-        await oldScanner.stop();
-      } catch (_) {}
-
-      try {
-        await oldScanner.clear();
-      } catch (_) {}
-    }
-
-    async function stopScanner() {
-      if (stopPromise) return stopPromise;
-
-      if (cameraStarting && startPromise) {
-        try {
-          await startPromise;
-        } catch (_) {}
-      }
-
-      if (!scanner && !cameraRunning) {
-        setCameraStatus("Camera is stopped.");
-        updateButtons();
-        return;
-      }
-
-      cameraStopping = true;
-      updateButtons();
-      setCameraStatus("Stopping camera...");
-
-      stopPromise = (async function() {
-        try {
-          await disposeScanner();
-          await delay(200);
-
-          setCameraStatus(
-            "Camera stopped. Start it again when ready for the next item.",
-            "success"
-          );
-        } catch (error) {
-          setCameraStatus(
-            "Could not stop camera: " + errorText(error),
-            "error"
-          );
-        } finally {
-          cameraRunning = false;
-          cameraStopping = false;
-          stopPromise = null;
-          updateButtons();
-        }
-      })();
-
-      return stopPromise;
-    }
-
-    async function onCodeDetected(rawCode) {
-      const id = cleanId(rawCode);
-
-      if (
-        !id ||
-        scanProcessing ||
-        searchInProgress ||
-        cameraStopping
-      ) {
-        return;
-      }
-
-      const now = Date.now();
-
-      if (
-        id === lastScannedId &&
-        now - lastScannedAt < 1800
-      ) {
-        return;
-      }
-
-      scanProcessing = true;
-      lastScannedId = id;
-      lastScannedAt = now;
-      itemInput.value = id;
-
-      try {
-        await stopScanner();
-        await searchItem(id);
-      } finally {
-        scanProcessing = false;
-      }
-    }
-
-    function callInventoryApi(id) {
-      return new Promise(function(resolve, reject) {
-        const callbackName =
-          "sjdCallback" + Date.now() + "_" + (++callbackNumber);
-
-        const script = document.createElement("script");
-        let finished = false;
-
-        const timeout = setTimeout(function() {
-          finish(new Error(
-            "Apps Script did not respond. Check the API URL and web app access settings."
-          ));
-        }, 15000);
-
-        function cleanup() {
-          clearTimeout(timeout);
-          script.remove();
-
-          try {
-            delete window[callbackName];
-          } catch (_) {
-            window[callbackName] = undefined;
-          }
-        }
-
-        function finish(error, data) {
-          if (finished) return;
-          finished = true;
-          cleanup();
-
-          if (error) {
-            reject(error);
-          } else {
-            resolve(data);
-          }
-        }
-
-        window[callbackName] = function(data) {
-          finish(null, data);
-        };
-
-        script.onerror = function() {
-          finish(new Error(
-            "Could not connect to Apps Script. Check the deployment URL and permissions."
-          ));
-        };
-
-        script.src = API_URL +
-          "?api=1&code=" + encodeURIComponent(id) +
-          "&callback=" + encodeURIComponent(callbackName) +
-          "&_=" + Date.now();
-
-        document.head.appendChild(script);
-      });
-    }
-
-    async function searchItem(scannedId) {
-      const id = cleanId(
-        scannedId !== undefined ? scannedId : itemInput.value
-      );
-
-      if (!id) {
-        showMessage("Enter or scan an item ID first.");
-        return;
-      }
-
-      if (searchInProgress) return;
-
-      itemInput.value = id;
-      searchInProgress = true;
-
-      const thisRequest = ++requestNumber;
-
-      updateButtons();
-      apiStatus.className = "";
-      apiStatus.textContent = "Searching inventory...";
-      showMessage("Searching for " + id + "...");
-
-      try {
-        const data = await callInventoryApi(id);
-
-        if (thisRequest !== requestNumber) return;
-
-        // Do not log the full API response because it may contain
-        // information that should remain private.
-        apiStatus.textContent = "Inventory connection successful.";
-        apiStatus.className = "success";
-
-        if (!data || data.found !== true) {
-          showMessage(
-            data && data.message
-              ? data.message
-              : "No matching item found for " + id
-          );
-          return;
-        }
-
-        displayItem(data);
-
-      } catch (error) {
-        if (thisRequest !== requestNumber) return;
-
-        console.error("Inventory API error:", error);
-
-        apiStatus.className = "error";
-        apiStatus.textContent = "Inventory connection failed.";
-        showMessage(errorText(error));
-
-      } finally {
-        if (thisRequest === requestNumber) {
-          searchInProgress = false;
-          updateButtons();
-        }
-      }
-    }
-
-    function addDetail(parent, labelText, value) {
-      if (
-        value === null ||
-        value === undefined ||
-        String(value).trim() === ""
-      ) {
-        return;
-      }
-
-      const row = document.createElement("div");
-      row.className = "detail-row";
-
-      const label = document.createElement("span");
-      label.className = "detail-label";
-      label.textContent = labelText;
-
-      const val = document.createElement("div");
-      val.className = "detail-value";
-      val.textContent = String(value);
-
-      row.appendChild(label);
-      row.appendChild(val);
-      parent.appendChild(row);
-    }
-
-    function normalizeFieldName(key) {
-      return String(key || "")
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "");
-    }
-
-    function isPrivatePricingField(key) {
-      const normalized = normalizeFieldName(key);
-
-      // Hide any internal costs, margins, profits, or cost-based prices.
-      const restrictedFields = [
-        "cost",
-        "costcad",
-        "costusd",
-        "margin",
-        "wholesalemargin",
-        "retailmargin",
-        "profit",
-        "wholesaleprofit",
-        "retailprofit",
-        "landedcost",
-        "finalprice",
-        "finalpriceusd",
-        "finalpricecad",
-        "priceperct",
-        "sellingprice",
-        "wholesaleprice",
-        "retailprice"
-      ];
-
-      return restrictedFields.some(function(field) {
-        return normalized === field ||
-          normalized.startsWith(field);
-      });
-    }
-
-    function displayRecordFields(parent, record) {
-      if (!record || typeof record !== "object") return;
-
-      Object.keys(record).forEach(function(key) {
-        const value = record[key];
-        const normalized = normalizeFieldName(key);
-
-        if (
-          isPrivatePricingField(key) ||
-          [
-            "photo",
-            "image",
-            "photourl",
-            "imageurl",
-            "barcodeimage"
-          ].includes(normalized) ||
-          value === null ||
-          value === undefined ||
-          String(value).trim() === "" ||
-          typeof value === "object"
-        ) {
-          return;
-        }
-
-        addDetail(parent, key, value);
-      });
-    }
-
-    function makeLinkedCard(title, record) {
-      const card = document.createElement("div");
-      card.className = "linked-card";
-
-      const heading = document.createElement("div");
-      heading.className = "linked-card-title";
-      heading.textContent = title;
-
-      card.appendChild(heading);
-      displayRecordFields(card, record || {});
-
-      return card;
-    }
-
-    function formatCAD(value) {
-      if (
-        value === null ||
-        value === undefined ||
-        String(value).trim() === ""
-      ) {
-        return "";
-      }
-
-      // Accept either a number or a formatted amount such as "$238.91".
-      const cleaned = String(value).replace(/[$,\s]/g, "");
-      const amount = Number(cleaned);
-
-      if (!Number.isFinite(amount)) {
-        return String(value);
-      }
-
-      return amount.toLocaleString("en-CA", {
-        style: "currency",
-        currency: "CAD"
-      });
-    }
-
-    function displaySellingPrices(parent, pricing) {
-      if (!pricing || typeof pricing !== "object") return;
-
-      const wholesale = pricing.wholesalePrice;
-      const retail = pricing.retailPrice;
-
-      const hasWholesale =
-        wholesale !== null &&
-        wholesale !== undefined &&
-        String(wholesale).trim() !== "";
-
-      const hasRetail =
-        retail !== null &&
-        retail !== undefined &&
-        String(retail).trim() !== "";
-
-      if (!hasWholesale && !hasRetail) {
-        return;
-      }
-
-      const section = document.createElement("section");
-      section.className = "price-panel";
-
-      const heading = document.createElement("h3");
-      heading.className = "price-heading";
-      heading.textContent = "Selling Prices";
-      section.appendChild(heading);
-
-      if (hasWholesale) {
-        const label = document.createElement("div");
-        label.className = "wholesale-label";
-        label.textContent = "Wholesale selling price";
-
-        const price = document.createElement("div");
-        price.className = "wholesale-price";
-        price.textContent = formatCAD(wholesale);
-
-        section.appendChild(label);
-        section.appendChild(price);
-      }
-
-      if (hasRetail) {
-        const retailElement = document.createElement("div");
-        retailElement.className = "retail-price";
-        retailElement.textContent =
-          "Retail reference: " + formatCAD(retail);
-
-        section.appendChild(retailElement);
-      }
-
-      parent.appendChild(section);
-    }
-
-    function displayItem(data) {
-      result.replaceChildren();
-
-      const record = data.record && typeof data.record === "object"
-        ? data.record
-        : {};
-
-      const isDiamond =
-        String(data.recordType || "").toUpperCase() === "DIAMOND";
-
-      const heading = document.createElement("h2");
-      heading.className = "section-heading";
-      heading.textContent = isDiamond
-        ? "Diamond Details"
-        : "Jewelry Details";
-
-      result.appendChild(heading);
-
-      const id = document.createElement("div");
-      id.className = "item-id";
-      id.textContent = data.id || itemInput.value;
-      result.appendChild(id);
-
-      const badge = document.createElement("span");
-      badge.className = "type-badge";
-      badge.textContent = isDiamond
-        ? "DIAMOND / STONE"
-        : "FINISHED JEWELRY";
-
-      result.appendChild(badge);
-
-      // Product specifications only. Internal pricing fields are filtered.
-      displayRecordFields(result, record);
-
-      // Public selling prices must come from the SELLING PRICE tab.
-      // Expected API format:
-      // pricing: { wholesalePrice: 238.91, retailPrice: 292.40 }
-      displaySellingPrices(result, data.pricing);
-
-      const photoUrl = data.photoUrl || "";
-
-      if (/^https?:\/\//i.test(photoUrl)) {
-        const looksLikeImage =
-          /\.(png|jpe?g|gif|webp|avif)(\?.*)?$/i.test(photoUrl);
-
-        if (looksLikeImage) {
-          const photo = document.createElement("img");
-          photo.className = "item-photo";
-          photo.alt = "Inventory item photo";
-          photo.src = photoUrl;
-          photo.onerror = function() {
-            photo.remove();
-          };
-          result.appendChild(photo);
-        } else {
-          const link = document.createElement("a");
-          link.className = "external-photo-link";
-          link.href = photoUrl;
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          link.textContent = "Open product/photo link";
-          result.appendChild(link);
-        }
-      }
-
-      // Scanning jewelry shows its assigned stones.
-      if (
-        Array.isArray(data.linkedDiamonds) &&
-        data.linkedDiamonds.length
-      ) {
-        const section = document.createElement("div");
-        section.className = "linked-section";
-
-        const linkedHeading = document.createElement("h3");
-        linkedHeading.className = "linked-heading";
-        linkedHeading.textContent =
-          "Diamonds assigned to this jewelry (" +
-          data.linkedDiamonds.length + ")";
-
-        section.appendChild(linkedHeading);
-
-        data.linkedDiamonds.forEach(function(stone) {
-          section.appendChild(
-            makeLinkedCard(
-              "Stone ID: " + (stone.id || "Unknown"),
-              stone.record
-            )
-          );
-        });
-
-        result.appendChild(section);
-      }
-
-      // Scanning an assigned diamond shows the jewelry that uses it.
-      if (isDiamond) {
-        const linkedJewelry = data.linkedJewelry;
-
-        if (linkedJewelry && linkedJewelry.found) {
-          const section = document.createElement("div");
-          section.className = "linked-section";
-
-          const linkedHeading = document.createElement("h3");
-          linkedHeading.className = "linked-heading";
-          linkedHeading.textContent = "Used in this jewelry";
-
-          section.appendChild(linkedHeading);
-
-          const note = document.createElement("div");
-          note.className = "relation-note";
-          note.textContent =
-            "This diamond is assigned to jewelry ID " +
-            linkedJewelry.id + ".";
-
-          section.appendChild(note);
-
-          section.appendChild(
-            makeLinkedCard(
-              "Jewelry ID: " + linkedJewelry.id,
-              linkedJewelry.record
-            )
-          );
-
-          if (
-            Array.isArray(linkedJewelry.linkedDiamonds) &&
-            linkedJewelry.linkedDiamonds.length
-          ) {
-            const stonesHeading = document.createElement("h3");
-            stonesHeading.className = "linked-heading";
-            stonesHeading.style.marginTop = "16px";
-            stonesHeading.textContent =
-              "All diamonds assigned to " + linkedJewelry.id;
-
-            section.appendChild(stonesHeading);
-
-            linkedJewelry.linkedDiamonds.forEach(function(stone) {
-              section.appendChild(
-                makeLinkedCard(
-                  "Stone ID: " + (stone.id || "Unknown"),
-                  stone.record
-                )
-              );
-            });
-          }
-
-          result.appendChild(section);
-
-        } else {
-          const jewelryId = data.linkedJewelryId ||
-            record["Jewelry ID"] ||
-            "";
-
-          if (String(jewelryId).trim()) {
-            const note = document.createElement("div");
-            note.className = "relation-note";
-            note.textContent =
-              "Assigned Jewelry ID: " + jewelryId +
-              ". The matching jewelry record was not found in INVENTORY.";
-
-            result.appendChild(note);
-          } else {
-            const note = document.createElement("div");
-            note.className = "relation-note";
-            note.textContent =
-              "No Jewelry ID is assigned. This diamond is recorded as a loose or unassigned stone.";
-
-            result.appendChild(note);
-          }
-        }
-      }
-
-      if (!Object.keys(record).length) {
-        addDetail(
-          result,
-          "Status",
-          "The item was found, but no record fields were returned."
-        );
-      }
-    }
-
-    searchForm.addEventListener("submit", function(event) {
-      event.preventDefault();
-      searchItem();
-    });
-
-    startButton.addEventListener("click", function() {
-      startScanner();
-    });
-
-    stopButton.addEventListener("click", function() {
-      stopScanner();
-    });
-
-    itemInput.addEventListener("input", function() {
-      lastScannedId = "";
-      lastScannedAt = 0;
-    });
-
-    window.addEventListener("pagehide", function() {
-      if (scanner && cameraRunning) {
-        scanner.stop().catch(function() {});
-      }
-    });
-
-    updateButtons();
-  </script>
+  }
+}
+$("form").addEventListener("submit",e=>{e.preventDefault();lookup()});
+$("start").addEventListener("click",startCamera);
+$("stop").addEventListener("click",stopCamera);
+$("itemId").addEventListener("input",()=>{lastCode="";lastTime=0});
+window.addEventListener("pagehide",()=>{if(scanner&&cameraRunning)scanner.stop().catch(()=>{})});
+updateButtons();
+</script>
 </body>
 </html>

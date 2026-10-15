@@ -201,7 +201,10 @@
       margin-top: 10px;
     }
 
-    .linked-card .display-id { font-size: 14px; margin-top: 8px; }
+    .linked-card .display-id {
+      font-size: 14px;
+      margin-top: 8px;
+    }
 
     .error {
       padding: 14px;
@@ -239,9 +242,13 @@
     <section class="panel">
       <form id="searchForm">
         <div class="search-row">
-          <input id="itemCode" type="text"
+          <input
+            id="itemCode"
+            type="text"
             placeholder="Enter item ID, e.g. SB013 or SJD-O07"
-            autocomplete="off" autocapitalize="characters">
+            autocomplete="off"
+            autocapitalize="characters"
+          >
           <button id="searchButton" type="submit">Search</button>
         </div>
       </form>
@@ -250,7 +257,9 @@
         <button id="startCamera" class="gold-button" type="button">
           Start Camera Scanner
         </button>
-        <button id="stopCamera" type="button" disabled>Stop Camera</button>
+        <button id="stopCamera" type="button" disabled>
+          Stop Camera
+        </button>
       </div>
 
       <div id="reader"></div>
@@ -277,6 +286,7 @@
     let html5QrCode = null;
     let cameraRunning = false;
     let lookupInProgress = false;
+    let cameraStopping = false;
     let lastScannedCode = "";
 
     document.getElementById("searchForm").addEventListener("submit", event => {
@@ -289,6 +299,27 @@
 
     function setStatus(message) {
       statusEl.textContent = message;
+    }
+
+    async function stopCameraForLookup() {
+      if (cameraStopping) return;
+
+      cameraStopping = true;
+
+      try {
+        if (html5QrCode && cameraRunning) {
+          await html5QrCode.stop();
+          await html5QrCode.clear();
+        }
+      } catch (error) {
+        console.warn("Camera stop:", error);
+      } finally {
+        cameraRunning = false;
+        html5QrCode = null;
+        startCameraButton.disabled = false;
+        stopCameraButton.disabled = true;
+        cameraStopping = false;
+      }
     }
 
     function lookupItem(rawCode) {
@@ -321,7 +352,10 @@
         lookupInProgress = false;
         searchButton.disabled = false;
         delete window[callbackName];
-        if (script.parentNode) script.parentNode.removeChild(script);
+
+        if (script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
       }
 
       const timeout = window.setTimeout(() => {
@@ -329,46 +363,29 @@
         showError("The inventory server did not respond. Please try again.");
       }, 20000);
 
-    
-window[callbackName] = async response => {
-  cleanup();
+      window[callbackName] = response => {
+        cleanup();
 
-  console.log("Sutariya API response:", response);
-  console.log("Sutariya API pricing:", response && response.pricing);
+        console.log("Sutariya API response:", response);
+        console.log("Sutariya API pricing:", response && response.pricing);
 
-  if (!response || response.found !== true) {
-    showError(
-      response && response.message
-        ? response.message
-        : "No item found. Check the ID."
-    );
-    return;
-  }
+        if (!response || response.found !== true) {
+          showError(
+            response && response.message
+              ? response.message
+              : "No item found. Check the ID."
+          );
+          return;
+        }
 
-  // Stop the camera after a successful lookup.
-  if (cameraRunning && html5QrCode) {
-    try {
-      await html5QrCode.stop();
-      await html5QrCode.clear();
-    } catch (error) {
-      console.warn("Could not stop camera after lookup:", error);
-    }
+        renderItem(response);
 
-    cameraRunning = false;
-    html5QrCode = null;
-    startCameraButton.disabled = false;
-    stopCameraButton.disabled = true;
-    lastScannedCode = "";
-  }
-
-  renderItem(response);
-  setStatus(
-    "Item found: " +
-    (response.displayId || response.id || code) +
-    ". Camera stopped — ready for the next item."
-  );
-};
-
+        setStatus(
+          "Item found: " +
+          (response.displayId || response.id || code) +
+          ". Camera is stopped. Ready for the next item."
+        );
+      };
 
       script.onerror = () => {
         cleanup();
@@ -377,7 +394,8 @@ window[callbackName] = async response => {
         );
       };
 
-      script.src = API_URL +
+      script.src =
+        API_URL +
         "?api=1&code=" + encodeURIComponent(code) +
         "&callback=" + encodeURIComponent(callbackName) +
         "&_=" + Date.now();
@@ -387,10 +405,12 @@ window[callbackName] = async response => {
 
     function showError(message) {
       resultsEl.replaceChildren();
+
       const box = document.createElement("div");
       box.className = "error";
       box.textContent = message;
       resultsEl.appendChild(box);
+
       setStatus("Search unsuccessful.");
     }
 
@@ -402,6 +422,7 @@ window[callbackName] = async response => {
 
     function isPrivateField(key) {
       const field = normalizeField(key);
+
       const blocked = [
         "cost", "costcad", "costusd", "margin",
         "wholesalemargin", "retailmargin", "profit",
@@ -410,12 +431,17 @@ window[callbackName] = async response => {
         "priceperct", "wholesaleprice", "retailprice",
         "sellingprice"
       ];
-      return blocked.some(term => field === term || field.startsWith(term));
+
+      return blocked.some(term =>
+        field === term || field.startsWith(term)
+      );
     }
 
     function appendText(parent, tag, className, text) {
       const element = document.createElement(tag);
+
       if (className) element.className = className;
+
       element.textContent = text == null ? "" : String(text);
       parent.appendChild(element);
       return element;
@@ -423,6 +449,7 @@ window[callbackName] = async response => {
 
     function appendImage(parent, url) {
       if (!url || !/^https?:\/\//i.test(String(url))) return;
+
       const image = document.createElement("img");
       image.className = "item-photo";
       image.src = url;
@@ -430,6 +457,7 @@ window[callbackName] = async response => {
       image.loading = "lazy";
       image.referrerPolicy = "no-referrer";
       image.onerror = () => image.remove();
+
       parent.appendChild(image);
     }
 
@@ -439,35 +467,49 @@ window[callbackName] = async response => {
 
       Object.entries(record || {}).forEach(([key, value]) => {
         if (isPrivateField(key)) return;
-        if (value === null || value === undefined || String(value).trim() === "") return;
+
+        if (
+          value === null ||
+          value === undefined ||
+          String(value).trim() === ""
+        ) return;
 
         const normalized = normalizeField(key);
+
         if ([
           "photo", "photourl", "image", "imageurl", "barcodeimage"
         ].includes(normalized)) return;
 
         const detail = document.createElement("div");
         detail.className = "detail";
+
         appendText(detail, "span", "detail-label", key);
         appendText(detail, "span", "detail-value", value);
         details.appendChild(detail);
       });
 
-      if (details.children.length) parent.appendChild(details);
+      if (details.children.length) {
+        parent.appendChild(details);
+      }
     }
 
-    // Supports camelCase API fields and common alternative header spellings.
     function getPrice(pricing, names) {
       if (!pricing || typeof pricing !== "object") return null;
 
       const wanted = names.map(normalizeField);
+
       for (const [key, value] of Object.entries(pricing)) {
         if (!wanted.includes(normalizeField(key))) continue;
-        if (value === null || value === undefined || String(value).trim() === "") {
-          return null;
-        }
+
+        if (
+          value === null ||
+          value === undefined ||
+          String(value).trim() === ""
+        ) return null;
+
         return value;
       }
+
       return null;
     }
 
@@ -483,7 +525,6 @@ window[callbackName] = async response => {
 
       let text = String(value).trim().replace(/[$\s]/g, "");
 
-      // Accept both 1,234.56 and 1234,56 number formats.
       if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(text)) {
         text = text.replace(/,/g, "");
       } else if (/^-?\d+,\d{1,2}$/.test(text)) {
@@ -491,6 +532,7 @@ window[callbackName] = async response => {
       }
 
       const amount = Number(text);
+
       if (!Number.isFinite(amount)) return String(value);
 
       return amount.toLocaleString("en-CA", {
@@ -519,12 +561,18 @@ window[callbackName] = async response => {
       values.forEach(({ label, value }) => {
         const box = document.createElement("div");
         box.className = "price-box";
+
         appendText(box, "span", "price-label", label);
 
         if (value === null) {
           appendText(box, "span", "empty-price", "Not set");
         } else {
-          appendText(box, "span", "price-value", formatSellingPrice(value));
+          appendText(
+            box,
+            "span",
+            "price-value",
+            formatSellingPrice(value)
+          );
         }
 
         section.appendChild(box);
@@ -534,7 +582,12 @@ window[callbackName] = async response => {
     }
 
     function renderItem(response) {
-      const record = response.record || response.item || response.data || response;
+      const record =
+        response.record ||
+        response.item ||
+        response.data ||
+        response;
+
       const card = document.createElement("article");
       card.className = "item-card";
 
@@ -542,22 +595,34 @@ window[callbackName] = async response => {
         response.recordType || record.recordType || record.type || "ITEM"
       ).toUpperCase();
 
-      appendText(card, "span", "item-type",
+      appendText(
+        card,
+        "span",
+        "item-type",
         recordType === "DIAMOND" ? "DIAMOND" :
-        recordType === "JEWELRY" ? "JEWELRY" : "ITEM");
+        recordType === "JEWELRY" ? "JEWELRY" : "ITEM"
+      );
 
-      const title = getValue(record, ["Product", "Name", "Description", "Shape", "Type"]) ||
+      const title =
+        getValue(record, ["Product", "Name", "Description", "Shape", "Type"]) ||
         (recordType === "DIAMOND" ? "Diamond Details" : "Jewelry Details");
 
       appendText(card, "h2", "", title);
-      appendText(card, "p", "display-id", "ID: " + (response.displayId || response.id || ""));
 
-      appendImage(card, response.photoUrl ||
-        getValue(record, ["Photo URL", "Photo", "Image URL", "Image"]));
+      appendText(
+        card,
+        "p",
+        "display-id",
+        "ID: " + (response.displayId || response.id || "")
+      );
+
+      appendImage(
+        card,
+        response.photoUrl ||
+        getValue(record, ["Photo URL", "Photo", "Image URL", "Image"])
+      );
 
       renderDetails(card, record);
-
-      // Prices are top-level properties in the confirmed API response.
       renderSellingPrices(card, response.pricing);
 
       if (response.linkedJewelry) {
@@ -565,54 +630,90 @@ window[callbackName] = async response => {
         renderLinkedRecord(card, response.linkedJewelry);
       }
 
-      const linkedDiamonds = response.linkedDiamonds || record.linkedDiamonds || [];
+      const linkedDiamonds =
+        response.linkedDiamonds ||
+        record.linkedDiamonds ||
+        [];
+
       if (Array.isArray(linkedDiamonds) && linkedDiamonds.length) {
         appendText(card, "h3", "section-title", "Linked Diamonds");
-        linkedDiamonds.forEach(diamond => renderLinkedRecord(card, diamond));
+
+        linkedDiamonds.forEach(diamond => {
+          renderLinkedRecord(card, diamond);
+        });
       }
 
       resultsEl.replaceChildren(card);
     }
 
     function renderLinkedRecord(parent, response) {
-      const record = response.record || response.item || response.data || response;
+      const record =
+        response.record ||
+        response.item ||
+        response.data ||
+        response;
+
       const box = document.createElement("div");
       box.className = "linked-card";
 
-      const type = String(response.recordType || record.recordType || "ITEM").toUpperCase();
-      appendText(box, "span", "item-type",
+      const type = String(
+        response.recordType || record.recordType || "ITEM"
+      ).toUpperCase();
+
+      appendText(
+        box,
+        "span",
+        "item-type",
         type === "DIAMOND" ? "DIAMOND" :
-        type === "JEWELRY" ? "JEWELRY" : "ITEM");
+        type === "JEWELRY" ? "JEWELRY" : "ITEM"
+      );
 
-      appendText(box, "h2", "",
-        getValue(record, ["Product", "Name", "Description", "Shape", "Type"]) || type);
+      const title =
+        getValue(record, ["Product", "Name", "Description", "Shape", "Type"]) ||
+        type;
 
-      appendText(box, "p", "display-id", "ID: " + (response.displayId || response.id || ""));
+      appendText(box, "h2", "", title);
 
-      appendImage(box, response.photoUrl ||
-        getValue(record, ["Photo URL", "Photo", "Image URL", "Image"]));
+      appendText(
+        box,
+        "p",
+        "display-id",
+        "ID: " + (response.displayId || response.id || "")
+      );
+
+      appendImage(
+        box,
+        response.photoUrl ||
+        getValue(record, ["Photo URL", "Photo", "Image URL", "Image"])
+      );
 
       renderDetails(box, record);
       renderSellingPrices(box, response.pricing);
+
       parent.appendChild(box);
     }
 
     function getValue(record, candidates) {
       if (!record) return "";
+
       const wanted = candidates.map(normalizeField);
 
       for (const [key, value] of Object.entries(record)) {
-        if (wanted.includes(normalizeField(key)) &&
-            value !== null && value !== undefined &&
-            String(value).trim() !== "") {
+        if (
+          wanted.includes(normalizeField(key)) &&
+          value !== null &&
+          value !== undefined &&
+          String(value).trim() !== ""
+        ) {
           return String(value);
         }
       }
+
       return "";
     }
 
     async function startCamera() {
-      if (cameraRunning) return;
+      if (cameraRunning || cameraStopping) return;
 
       if (typeof Html5Qrcode === "undefined") {
         setStatus("Camera scanner library failed to load. Refresh the page.");
@@ -621,16 +722,33 @@ window[callbackName] = async response => {
 
       try {
         setStatus("Requesting camera permission...");
-        if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+
+        if (!html5QrCode) {
+          html5QrCode = new Html5Qrcode("reader");
+        }
 
         await html5QrCode.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 240, height: 180 }, aspectRatio: 1.333 },
-          decodedText => {
+          {
+            fps: 10,
+            qrbox: { width: 240, height: 180 },
+            aspectRatio: 1.333
+          },
+          async decodedText => {
             const code = String(decodedText || "").trim();
-            if (!code || code === lastScannedCode || lookupInProgress) return;
+
+            if (!code || lookupInProgress || cameraStopping) return;
+
+            // Lock immediately to prevent duplicate detections.
+            lookupInProgress = true;
             lastScannedCode = code;
             input.value = code;
+            setStatus("QR detected. Closing camera...");
+
+            // Stop camera first, then begin the server lookup.
+            await stopCameraForLookup();
+
+            lookupInProgress = false;
             lookupItem(code);
           },
           () => {}
@@ -642,27 +760,41 @@ window[callbackName] = async response => {
         setStatus("Camera active. Point it at an item's QR code.");
       } catch (error) {
         console.error("Camera error:", error);
-        setStatus("Could not start the camera. Allow camera access and use HTTPS. " +
-          (error && error.message ? error.message : ""));
+
+        cameraRunning = false;
+        html5QrCode = null;
+        startCameraButton.disabled = false;
+        stopCameraButton.disabled = true;
+
+        setStatus(
+          "Could not start the camera. Allow camera access and use HTTPS. " +
+          (error && error.message ? error.message : "")
+        );
       }
     }
 
     async function stopCamera() {
-      if (!html5QrCode || !cameraRunning) return;
+      if (cameraStopping) return;
+
+      cameraStopping = true;
 
       try {
-        await html5QrCode.stop();
-        await html5QrCode.clear();
+        if (html5QrCode && cameraRunning) {
+          await html5QrCode.stop();
+          await html5QrCode.clear();
+        }
       } catch (error) {
         console.warn("Camera stop:", error);
-      }
+      } finally {
+        cameraRunning = false;
+        html5QrCode = null;
+        startCameraButton.disabled = false;
+        stopCameraButton.disabled = true;
+        lastScannedCode = "";
+        cameraStopping = false;
 
-      cameraRunning = false;
-      html5QrCode = null;
-      startCameraButton.disabled = false;
-      stopCameraButton.disabled = true;
-      lastScannedCode = "";
-      setStatus("Camera stopped. Enter an ID or start scanning again.");
+        setStatus("Camera stopped. Enter an ID or start scanning again.");
+      }
     }
   </script>
 </body>
